@@ -1,4 +1,4 @@
-[![Pub Package](https://img.shields.io/pub/v/upower.svg)](https://pub.dev/packages/upower)
+[![Pub Package](https://img.shields.io/pub/v/fwupd.svg)](https://pub.dev/packages/fwupd)
 
 Provides a client to connect to [fwupd](https://fwupd.org/) - the service that does firmware updates on Linux.
 
