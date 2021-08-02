@@ -2,6 +2,28 @@ import 'dart:async';
 
 import 'package:dbus/dbus.dart';
 
+class FwupdDevice {
+  final String deviceId;
+  final List<String> guid;
+  final List<String> icon;
+  final String name;
+  final String? parentDeviceId;
+  final String plugin;
+  final String? summary;
+
+  FwupdDevice(
+      {required this.deviceId,
+      this.guid = const [],
+      this.icon = const [],
+      required this.name,
+      this.parentDeviceId,
+      required this.plugin,
+      this.summary});
+
+  @override
+  String toString() => "FwupdDevice(deviceId: $deviceId, name: '$name')";
+}
+
 /// A client that connects to fwupd.
 class FwupdClient {
   /// The bus this client is connected to.
@@ -41,6 +63,38 @@ class FwupdClient {
       }
     });
     _updateProperties(await _root.getAllProperties('org.freedesktop.fwupd'));
+  }
+
+  /// Gets the devices being managed by fwupd.
+  Future<List<FwupdDevice>> getDevices() async {
+    var result = await _root.callMethod(
+        'org.freedesktop.fwupd', 'GetDevices', [],
+        replySignature: DBusSignature('aa{sv}'));
+    return (result.returnValues[0] as DBusArray)
+        .children
+        .map((child) => (child as DBusDict).children.map((key, value) =>
+            MapEntry((key as DBusString).value, (value as DBusVariant).value)))
+        .map((properties) => _parseDevice(properties))
+        .toList();
+  }
+
+  FwupdDevice _parseDevice(Map<String, DBusValue> properties) {
+    return FwupdDevice(
+        deviceId: (properties['DeviceId'] as DBusString?)?.value ?? '',
+        name: (properties['Name'] as DBusString?)?.value ?? '',
+        guid: (properties['Guid'] as DBusArray?)
+                ?.children
+                .map((value) => (value as DBusString).value)
+                .toList() ??
+            [],
+        icon: (properties['Icon'] as DBusArray?)
+                ?.children
+                .map((value) => (value as DBusString).value)
+                .toList() ??
+            [],
+        parentDeviceId: (properties['ParentDeviceId'] as DBusString?)?.value,
+        plugin: (properties['Plugin'] as DBusString?)?.value ?? '',
+        summary: (properties['Summary'] as DBusString?)?.value);
   }
 
   /// Terminates the connection to the fwupd daemon. If a client remains unclosed, the Dart process may not terminate.
