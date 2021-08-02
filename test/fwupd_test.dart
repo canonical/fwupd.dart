@@ -117,4 +117,53 @@ void main() {
 
     await client.close();
   });
+
+  test('get devices', () async {
+    var server = DBusServer();
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var fwupd = MockFwupdServer(clientAddress, devices: [
+      {
+        'DeviceId': DBusString('parentId'),
+        'Guid': DBusArray.string(['guid1a', 'guid1b']),
+        'Name': DBusString('Device 1'),
+        'Plugin': DBusString('plugin1')
+      },
+      {
+        'DeviceId': DBusString('childId'),
+        'Guid': DBusArray.string(['guid2']),
+        'Icon': DBusArray.string(['computer']),
+        'Name': DBusString('Child Device'),
+        'ParentDeviceId': DBusString('parentId'),
+        'Plugin': DBusString('plugin2'),
+        'Summary': DBusString('A child plugin')
+      }
+    ]);
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    await client.connect();
+
+    var devices = await client.getDevices();
+    expect(devices, hasLength(2));
+    var device = devices[0];
+    expect(device.deviceId, equals('parentId'));
+    expect(device.guid, equals(['guid1a', 'guid1b']));
+    expect(device.name, equals('Device 1'));
+    expect(device.icon, equals([]));
+    expect(device.parentDeviceId, isNull);
+    expect(device.plugin, equals('plugin1'));
+    expect(device.summary, isNull);
+    device = devices[1];
+    expect(device.deviceId, equals('childId'));
+    expect(device.guid, equals(['guid2']));
+    expect(device.name, equals('Child Device'));
+    expect(device.icon, equals(['computer']));
+    expect(device.parentDeviceId, equals('parentId'));
+    expect(device.plugin, equals('plugin2'));
+    expect(device.summary, equals('A child plugin'));
+
+    await client.close();
+  });
 }
