@@ -166,4 +166,28 @@ void main() {
 
     await client.close();
   });
+
+  test('get plugins', () async {
+    var server = DBusServer();
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var fwupd = MockFwupdServer(clientAddress, plugins: [
+      {'Name': DBusString('plugin1')},
+      {'Name': DBusString('plugin2')}
+    ]);
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    await client.connect();
+
+    var plugins = await client.getPlugins();
+    expect(plugins, hasLength(2));
+    var plugin = plugins[0];
+    expect(plugin.name, equals('plugin1'));
+    plugin = plugins[1];
+    expect(plugin.name, equals('plugin2'));
+
+    await client.close();
+  });
 }

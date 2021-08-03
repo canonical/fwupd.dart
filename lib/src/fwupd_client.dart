@@ -24,6 +24,17 @@ class FwupdDevice {
   String toString() => "FwupdDevice(deviceId: $deviceId, name: '$name')";
 }
 
+class FwupdPlugin {
+  final String name;
+
+  FwupdPlugin({
+    required this.name,
+  });
+
+  @override
+  String toString() => 'FwupdDevice(name: $name)';
+}
+
 /// A client that connects to fwupd.
 class FwupdClient {
   /// The bus this client is connected to.
@@ -78,6 +89,35 @@ class FwupdClient {
         .toList();
   }
 
+  /// Gets the plugins supported by fwupd.
+  Future<List<FwupdPlugin>> getPlugins() async {
+    var result = await _root.callMethod(
+        'org.freedesktop.fwupd', 'GetPlugins', [],
+        replySignature: DBusSignature('aa{sv}'));
+    return (result.returnValues[0] as DBusArray)
+        .children
+        .map((child) => (child as DBusDict).children.map((key, value) =>
+            MapEntry((key as DBusString).value, (value as DBusVariant).value)))
+        .map((properties) => _parsePlugin(properties))
+        .toList();
+  }
+
+  /// Terminates the connection to the fwupd daemon. If a client remains unclosed, the Dart process may not terminate.
+  Future<void> close() async {
+    if (_propertiesChangedSubscription != null) {
+      await _propertiesChangedSubscription!.cancel();
+      _propertiesChangedSubscription = null;
+    }
+    if (_closeBus) {
+      await _bus.close();
+    }
+  }
+
+  void _updateProperties(Map<String, DBusValue> properties) {
+    _properties.addAll(properties);
+    _propertiesChangedController.add(properties.keys.toList());
+  }
+
   FwupdDevice _parseDevice(Map<String, DBusValue> properties) {
     return FwupdDevice(
         deviceId: (properties['DeviceId'] as DBusString?)?.value ?? '',
@@ -97,19 +137,7 @@ class FwupdClient {
         summary: (properties['Summary'] as DBusString?)?.value);
   }
 
-  /// Terminates the connection to the fwupd daemon. If a client remains unclosed, the Dart process may not terminate.
-  Future<void> close() async {
-    if (_propertiesChangedSubscription != null) {
-      await _propertiesChangedSubscription!.cancel();
-      _propertiesChangedSubscription = null;
-    }
-    if (_closeBus) {
-      await _bus.close();
-    }
-  }
-
-  void _updateProperties(Map<String, DBusValue> properties) {
-    _properties.addAll(properties);
-    _propertiesChangedController.add(properties.keys.toList());
+  FwupdPlugin _parsePlugin(Map<String, DBusValue> properties) {
+    return FwupdPlugin(name: (properties['Name'] as DBusString?)?.value ?? '');
   }
 }
