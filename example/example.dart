@@ -7,7 +7,15 @@ void main() async {
   print('Devices:');
   var devices = await client.getDevices();
   for (var device in devices) {
-    print('  $device');
+    print('${device.name}');
+    try {
+      var upgrades = await client.getUpgrades(device.deviceId);
+      for (var upgrade in upgrades) {
+        print('  ${upgrade.name}');
+      }
+    } on FwupdException {
+      // No upgrades available.
+    }
   }
   await client.close();
 }

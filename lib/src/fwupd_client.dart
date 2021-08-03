@@ -2,6 +2,12 @@ import 'dart:async';
 
 import 'package:dbus/dbus.dart';
 
+class FwupdException implements Exception {}
+
+class FwupdNotSupportedException extends FwupdException {}
+
+class FwupdNothingToDoException extends FwupdException {}
+
 class FwupdDevice {
   final String deviceId;
   final List<String> guid;
@@ -30,6 +36,30 @@ class FwupdPlugin {
   FwupdPlugin({
     required this.name,
   });
+
+  @override
+  String toString() => 'FwupdDevice(name: $name)';
+}
+
+class FwupdUpgrade {
+  final String description;
+  final String homepage;
+  final String license;
+  final String name;
+  final int size;
+  final String summary;
+  final String vendor;
+  final String version;
+
+  FwupdUpgrade(
+      {this.description = '',
+      this.homepage = '',
+      this.license = '',
+      required this.name,
+      this.size = 0,
+      this.summary = '',
+      this.vendor = '',
+      this.version = ''});
 
   @override
   String toString() => 'FwupdDevice(name: $name)';
@@ -78,10 +108,10 @@ class FwupdClient {
 
   /// Gets the devices being managed by fwupd.
   Future<List<FwupdDevice>> getDevices() async {
-    var result = await _root.callMethod(
+    var response = await _root.callMethod(
         'org.freedesktop.fwupd', 'GetDevices', [],
         replySignature: DBusSignature('aa{sv}'));
-    return (result.returnValues[0] as DBusArray)
+    return (response.returnValues[0] as DBusArray)
         .children
         .map((child) => (child as DBusDict).children.map((key, value) =>
             MapEntry((key as DBusString).value, (value as DBusVariant).value)))
@@ -91,14 +121,39 @@ class FwupdClient {
 
   /// Gets the plugins supported by fwupd.
   Future<List<FwupdPlugin>> getPlugins() async {
-    var result = await _root.callMethod(
+    var response = await _root.callMethod(
         'org.freedesktop.fwupd', 'GetPlugins', [],
         replySignature: DBusSignature('aa{sv}'));
-    return (result.returnValues[0] as DBusArray)
+    return (response.returnValues[0] as DBusArray)
         .children
         .map((child) => (child as DBusDict).children.map((key, value) =>
             MapEntry((key as DBusString).value, (value as DBusVariant).value)))
         .map((properties) => _parsePlugin(properties))
+        .toList();
+  }
+
+  Future<List<FwupdUpgrade>> getUpgrades(String deviceId) async {
+    DBusMethodResponse response;
+    try {
+      response = await _root.callMethod(
+          'org.freedesktop.fwupd', 'GetUpgrades', [DBusString(deviceId)],
+          replySignature: DBusSignature('aa{sv}'));
+    } on DBusMethodResponseException catch (e) {
+      var errorResponse = e.response;
+      switch (errorResponse.errorName) {
+        case 'org.freedesktop.fwupd.NotSupported':
+          throw FwupdNotSupportedException();
+        case 'org.freedesktop.fwupd.NothingToDo':
+          throw FwupdNothingToDoException();
+        default:
+          rethrow;
+      }
+    }
+    return (response.returnValues[0] as DBusArray)
+        .children
+        .map((child) => (child as DBusDict).children.map((key, value) =>
+            MapEntry((key as DBusString).value, (value as DBusVariant).value)))
+        .map((properties) => _parseUpgrade(properties))
         .toList();
   }
 
@@ -139,5 +194,17 @@ class FwupdClient {
 
   FwupdPlugin _parsePlugin(Map<String, DBusValue> properties) {
     return FwupdPlugin(name: (properties['Name'] as DBusString?)?.value ?? '');
+  }
+
+  FwupdUpgrade _parseUpgrade(Map<String, DBusValue> properties) {
+    return FwupdUpgrade(
+        description: (properties['Description'] as DBusString?)?.value ?? '',
+        homepage: (properties['Homepage'] as DBusString?)?.value ?? '',
+        license: (properties['License'] as DBusString?)?.value ?? '',
+        name: (properties['Name'] as DBusString?)?.value ?? '',
+        size: (properties['Size'] as DBusUint64?)?.value ?? 0,
+        summary: (properties['Summary'] as DBusString?)?.value ?? '',
+        vendor: (properties['Vendor'] as DBusString?)?.value ?? '',
+        version: (properties['Version'] as DBusString?)?.value ?? '');
   }
 }
