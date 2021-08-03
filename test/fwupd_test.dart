@@ -28,6 +28,26 @@ class MockFwupdObject extends DBusObject {
     }
 
     switch (methodCall.name) {
+      case 'Activate':
+        //var id = (methodCall.values[0] as DBusString).value;
+        return DBusMethodSuccessResponse();
+
+      case 'ClearResults':
+        //var id = (methodCall.values[0] as DBusString).value;
+        return DBusMethodSuccessResponse();
+
+      case 'Unlock':
+        //var id = (methodCall.values[0] as DBusString).value;
+        return DBusMethodSuccessResponse();
+
+      case 'Verify':
+        //var id = (methodCall.values[0] as DBusString).value;
+        return DBusMethodSuccessResponse();
+
+      case 'VerifyUpdate':
+        //var id = (methodCall.values[0] as DBusString).value;
+        return DBusMethodSuccessResponse();
+
       case 'GetApprovedFirmware':
         return DBusMethodSuccessResponse(
             [DBusArray.string(server.approvedFirmware)]);

@@ -157,6 +157,34 @@ class FwupdClient {
         .toList();
   }
 
+  Future<void> activate(String id) async {
+    await _root.callMethod(
+        'org.freedesktop.fwupd', 'Activate', [DBusString(id)],
+        replySignature: DBusSignature(''));
+  }
+
+  Future<void> clearResults(String id) async {
+    await _root.callMethod(
+        'org.freedesktop.fwupd', 'ClearResults', [DBusString(id)],
+        replySignature: DBusSignature(''));
+  }
+
+  Future<void> unlock(String id) async {
+    await _root.callMethod('org.freedesktop.fwupd', 'Unlock', [DBusString(id)],
+        replySignature: DBusSignature(''));
+  }
+
+  Future<void> verify(String id) async {
+    await _root.callMethod('org.freedesktop.fwupd', 'Verify', [DBusString(id)],
+        replySignature: DBusSignature(''));
+  }
+
+  Future<void> verifyUpdate(String id) async {
+    await _root.callMethod(
+        'org.freedesktop.fwupd', 'VerifyUpdate', [DBusString(id)],
+        replySignature: DBusSignature(''));
+  }
+
   /// Terminates the connection to the fwupd daemon. If a client remains unclosed, the Dart process may not terminate.
   Future<void> close() async {
     if (_propertiesChangedSubscription != null) {
