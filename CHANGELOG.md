@@ -1,5 +1,5 @@
 # Changelog
 
-## 0.0.0-dev
+## 0.0.1
 
-* Initial pre-release
+* Initial release
