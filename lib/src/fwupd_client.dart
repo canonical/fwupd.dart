@@ -23,6 +23,22 @@ enum FwupdDeviceFlag {
   needsBootloader
 }
 
+enum FwupdVersionFormat {
+  unknown,
+  plain,
+  number,
+  pair,
+  triplet,
+  quad,
+  bcd,
+  intelMe,
+  intelMe2,
+  surfaceLegacy,
+  surface,
+  dellBios,
+  hex
+}
+
 class FwupdException implements Exception {}
 
 class FwupdNotSupportedException extends FwupdException {}
@@ -42,6 +58,8 @@ class FwupdDevice {
   final String? summary;
   final String? vendor;
   final String? vendorId;
+  final String? version;
+  final FwupdVersionFormat versionFormat;
 
   FwupdDevice(
       {this.checksum,
@@ -55,11 +73,13 @@ class FwupdDevice {
       required this.plugin,
       this.summary,
       this.vendor,
-      this.vendorId});
+      this.vendorId,
+      this.version,
+      this.versionFormat = FwupdVersionFormat.unknown});
 
   @override
   String toString() =>
-      "FwupdDevice(checksum: $checksum, created: $created, deviceId: $deviceId, flags: $flags, guid: $guid, icon: $icon, name: '$name', parentDeviceId: $parentDeviceId, plugin: $plugin, summary: $summary, vendor: $vendor, vendorId: $vendorId)";
+      "FwupdDevice(checksum: $checksum, created: $created, deviceId: $deviceId, flags: $flags, guid: $guid, icon: $icon, name: '$name', parentDeviceId: $parentDeviceId, plugin: $plugin, summary: $summary, vendor: $vendor, vendorId: $vendorId, version: $version, versionFormat: $versionFormat)";
 }
 
 class FwupdPlugin {
@@ -258,6 +278,11 @@ class FwupdClient {
         flags.add(FwupdDeviceFlag.values[i]);
       }
     }
+    var versionFormatValue =
+        (properties['VersionFormat'] as DBusUint32?)?.value ?? 0;
+    var versionFormat = versionFormatValue < FwupdVersionFormat.values.length
+        ? FwupdVersionFormat.values[versionFormatValue]
+        : FwupdVersionFormat.unknown;
     return FwupdDevice(
         checksum: (properties['Checksum'] as DBusString?)?.value,
         created: created,
@@ -278,7 +303,9 @@ class FwupdClient {
         plugin: (properties['Plugin'] as DBusString?)?.value ?? '',
         summary: (properties['Summary'] as DBusString?)?.value,
         vendor: (properties['Vendor'] as DBusString?)?.value,
-        vendorId: (properties['VendorId'] as DBusString?)?.value);
+        vendorId: (properties['VendorId'] as DBusString?)?.value,
+        version: (properties['Version'] as DBusString?)?.value,
+        versionFormat: versionFormat);
   }
 
   FwupdPlugin _parsePlugin(Map<String, DBusValue> properties) {

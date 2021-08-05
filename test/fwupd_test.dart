@@ -198,7 +198,9 @@ void main() {
         'Plugin': DBusString('plugin2'),
         'Summary': DBusString('A child plugin'),
         'Vendor': DBusString('VENDOR'),
-        'VendorId': DBusString('VENDOR-ID')
+        'VendorId': DBusString('VENDOR-ID'),
+        'Version': DBusString('42'),
+        'VersionFormat': DBusUint32(2)
       }
     ]);
     await fwupd.start();
@@ -221,6 +223,8 @@ void main() {
     expect(device.summary, isNull);
     expect(device.vendor, isNull);
     expect(device.vendorId, isNull);
+    expect(device.version, isNull);
+    expect(device.versionFormat, equals(FwupdVersionFormat.unknown));
 
     device = devices[1];
     expect(device.checksum, equals('CHECKSUM'));
@@ -236,6 +240,8 @@ void main() {
     expect(device.summary, equals('A child plugin'));
     expect(device.vendor, equals('VENDOR'));
     expect(device.vendorId, equals('VENDOR-ID'));
+    expect(device.version, equals('42'));
+    expect(device.versionFormat, equals(FwupdVersionFormat.number));
 
     await client.close();
   });
