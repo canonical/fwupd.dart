@@ -1,5 +1,5 @@
 name: fwupd
-version: 0.0.1
+version: 0.0.2
 
 description:
   Provides a client to connect to fwupd - the service that does firmware updates on Linux.
