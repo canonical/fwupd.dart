@@ -30,6 +30,7 @@ class FwupdNotSupportedException extends FwupdException {}
 class FwupdNothingToDoException extends FwupdException {}
 
 class FwupdDevice {
+  final DateTime? created;
   final String deviceId;
   final Set<FwupdDeviceFlag> flags;
   final List<String> guid;
@@ -40,7 +41,8 @@ class FwupdDevice {
   final String? summary;
 
   FwupdDevice(
-      {required this.deviceId,
+      {this.created,
+      required this.deviceId,
       this.flags = const {},
       this.guid = const [],
       this.icon = const [],
@@ -50,7 +52,8 @@ class FwupdDevice {
       this.summary});
 
   @override
-  String toString() => "FwupdDevice(deviceId: $deviceId, name: '$name')";
+  String toString() =>
+      "FwupdDevice(created: $created, deviceId: $deviceId, flags: $flags, guid: $guid, icon: $icon, name: '$name', parentDeviceId: $parentDeviceId, plugin: $plugin, summary: $summary)";
 }
 
 class FwupdPlugin {
@@ -238,6 +241,10 @@ class FwupdClient {
   }
 
   FwupdDevice _parseDevice(Map<String, DBusValue> properties) {
+    var createdTime = (properties['Created'] as DBusUint64?)?.value;
+    var created = createdTime != null
+        ? DateTime.fromMillisecondsSinceEpoch(createdTime * 1000, isUtc: true)
+        : null;
     var flagsValue = (properties['Flags'] as DBusUint64?)?.value ?? 0;
     var flags = <FwupdDeviceFlag>{};
     for (var i = 0; i < FwupdDeviceFlag.values.length; i++) {
@@ -246,6 +253,7 @@ class FwupdClient {
       }
     }
     return FwupdDevice(
+        created: created,
         deviceId: (properties['DeviceId'] as DBusString?)?.value ?? '',
         name: (properties['Name'] as DBusString?)?.value ?? '',
         flags: flags,

@@ -187,6 +187,7 @@ void main() {
         'Plugin': DBusString('plugin1')
       },
       {
+        'Created': DBusUint64(1628138280),
         'DeviceId': DBusString('childId'),
         'Flags': DBusUint64(10),
         'Guid': DBusArray.string(['guid2']),
@@ -205,6 +206,7 @@ void main() {
     var devices = await client.getDevices();
     expect(devices, hasLength(2));
     var device = devices[0];
+    expect(device.created, isNull);
     expect(device.deviceId, equals('parentId'));
     expect(device.flags, isEmpty);
     expect(device.guid, equals(['guid1a', 'guid1b']));
@@ -213,7 +215,9 @@ void main() {
     expect(device.parentDeviceId, isNull);
     expect(device.plugin, equals('plugin1'));
     expect(device.summary, isNull);
+
     device = devices[1];
+    expect(device.created, equals(DateTime.utc(2021, 8, 5, 4, 38)));
     expect(device.deviceId, equals('childId'));
     expect(device.flags,
         equals({FwupdDeviceFlag.allowOnline, FwupdDeviceFlag.requireAc}));
