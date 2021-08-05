@@ -188,6 +188,7 @@ void main() {
       },
       {
         'DeviceId': DBusString('childId'),
+        'Flags': DBusUint64(10),
         'Guid': DBusArray.string(['guid2']),
         'Icon': DBusArray.string(['computer']),
         'Name': DBusString('Child Device'),
@@ -205,6 +206,7 @@ void main() {
     expect(devices, hasLength(2));
     var device = devices[0];
     expect(device.deviceId, equals('parentId'));
+    expect(device.flags, isEmpty);
     expect(device.guid, equals(['guid1a', 'guid1b']));
     expect(device.name, equals('Device 1'));
     expect(device.icon, equals([]));
@@ -213,6 +215,8 @@ void main() {
     expect(device.summary, isNull);
     device = devices[1];
     expect(device.deviceId, equals('childId'));
+    expect(device.flags,
+        equals({FwupdDeviceFlag.allowOnline, FwupdDeviceFlag.requireAc}));
     expect(device.guid, equals(['guid2']));
     expect(device.name, equals('Child Device'));
     expect(device.icon, equals(['computer']));

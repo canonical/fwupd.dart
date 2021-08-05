@@ -13,6 +13,16 @@ enum FwupdStatus {
   scheduling
 }
 
+enum FwupdDeviceFlag {
+  internal,
+  allowOnline,
+  allowOffline,
+  requireAc,
+  locked,
+  supported,
+  needsBootloader
+}
+
 class FwupdException implements Exception {}
 
 class FwupdNotSupportedException extends FwupdException {}
@@ -21,6 +31,7 @@ class FwupdNothingToDoException extends FwupdException {}
 
 class FwupdDevice {
   final String deviceId;
+  final Set<FwupdDeviceFlag> flags;
   final List<String> guid;
   final List<String> icon;
   final String name;
@@ -30,6 +41,7 @@ class FwupdDevice {
 
   FwupdDevice(
       {required this.deviceId,
+      this.flags = const {},
       this.guid = const [],
       this.icon = const [],
       required this.name,
@@ -226,9 +238,17 @@ class FwupdClient {
   }
 
   FwupdDevice _parseDevice(Map<String, DBusValue> properties) {
+    var flagsValue = (properties['Flags'] as DBusUint64?)?.value ?? 0;
+    var flags = <FwupdDeviceFlag>{};
+    for (var i = 0; i < FwupdDeviceFlag.values.length; i++) {
+      if (flagsValue & (1 << i) != 0) {
+        flags.add(FwupdDeviceFlag.values[i]);
+      }
+    }
     return FwupdDevice(
         deviceId: (properties['DeviceId'] as DBusString?)?.value ?? '',
         name: (properties['Name'] as DBusString?)?.value ?? '',
+        flags: flags,
         guid: (properties['Guid'] as DBusArray?)
                 ?.children
                 .map((value) => (value as DBusString).value)
