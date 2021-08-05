@@ -85,7 +85,7 @@ class FwupdUpgrade {
       this.version = ''});
 
   @override
-  String toString() => 'FwupdDevice(name: $name)';
+  String toString() => 'FwupdUpgrade(name: $name)';
 }
 
 /// A client that connects to fwupd.
