@@ -278,14 +278,33 @@ void main() {
     var fwupd = MockFwupdServer(clientAddress, upgrades: {
       'id1': [
         {
-          'Description': DBusString('DESCRIPTION'),
-          'Homepage': DBusString('http://example.com'),
+          'Description': DBusString('DESCRIPTION1'),
+          'Homepage': DBusString('http://example.com/1'),
           'License': DBusString('GPL-3.0'),
-          'Name': DBusString('NAME'),
+          'Name': DBusString('NAME1'),
           'Size': DBusUint64(123456),
-          'Summary': DBusString('SUMMARY'),
+          'Summary': DBusString('SUMMARY1'),
           'Vendor': DBusString('VENDOR'),
           'Version': DBusString('1.2')
+        },
+        {
+          'AppstreamId': DBusString('com.example.Test'),
+          'Checksum': DBusString('CHECKSUM'),
+          'Created': DBusUint64(1585267200),
+          'Description': DBusString('DESCRIPTION2'),
+          'Filename': DBusString('test.cab'),
+          'Homepage': DBusString('http://example.com/2'),
+          'License': DBusString('GPL-3.0'),
+          'Locations': DBusArray.string(['https://example.com/test.cab']),
+          'Name': DBusString('NAME2'),
+          'Protocol': DBusString('PROTOCOL'),
+          'Size': DBusUint64(654321),
+          'Summary': DBusString('SUMMARY2'),
+          'TrustFlags': DBusUint64(2),
+          'Urgency': DBusUint32(3),
+          'Uri': DBusString('https://example.com/test.cab'),
+          'Vendor': DBusString('VENDOR'),
+          'Version': DBusString('3.4')
         }
       ]
     });
@@ -295,16 +314,43 @@ void main() {
     await client.connect();
 
     var upgrades = await client.getUpgrades('id1');
-    expect(upgrades, hasLength(1));
+    expect(upgrades, hasLength(2));
+
     var upgrade = upgrades[0];
-    expect(upgrade.description, equals('DESCRIPTION'));
-    expect(upgrade.homepage, equals('http://example.com'));
+    expect(upgrade.appstreamId, isNull);
+    expect(upgrade.checksum, isNull);
+    expect(upgrade.created, isNull);
+    expect(upgrade.description, equals('DESCRIPTION1'));
+    expect(upgrade.filename, isNull);
+    expect(upgrade.homepage, equals('http://example.com/1'));
     expect(upgrade.license, equals('GPL-3.0'));
-    expect(upgrade.name, equals('NAME'));
+    expect(upgrade.locations, isEmpty);
+    expect(upgrade.name, equals('NAME1'));
+    expect(upgrade.protocol, isNull);
     expect(upgrade.size, equals(123456));
-    expect(upgrade.summary, equals('SUMMARY'));
+    expect(upgrade.summary, equals('SUMMARY1'));
+    expect(upgrade.trustFlags, isEmpty);
+    expect(upgrade.urgency, equals(FwupdReleaseUrgency.unknown));
     expect(upgrade.vendor, equals('VENDOR'));
     expect(upgrade.version, equals('1.2'));
+
+    upgrade = upgrades[1];
+    expect(upgrade.appstreamId, equals('com.example.Test'));
+    expect(upgrade.checksum, equals('CHECKSUM'));
+    expect(upgrade.created, equals(DateTime.utc(2020, 3, 27)));
+    expect(upgrade.description, equals('DESCRIPTION2'));
+    expect(upgrade.filename, equals('test.cab'));
+    expect(upgrade.homepage, equals('http://example.com/2'));
+    expect(upgrade.license, equals('GPL-3.0'));
+    expect(upgrade.locations, equals(['https://example.com/test.cab']));
+    expect(upgrade.name, equals('NAME2'));
+    expect(upgrade.protocol, equals('PROTOCOL'));
+    expect(upgrade.size, equals(654321));
+    expect(upgrade.summary, equals('SUMMARY2'));
+    expect(upgrade.trustFlags, equals({FwupdTrustFlag.metadata}));
+    expect(upgrade.urgency, equals(FwupdReleaseUrgency.high));
+    expect(upgrade.vendor, equals('VENDOR'));
+    expect(upgrade.version, equals('3.4'));
 
     await client.close();
   });

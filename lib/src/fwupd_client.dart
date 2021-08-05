@@ -81,6 +81,10 @@ enum FwupdVersionFormat {
   hex
 }
 
+enum FwupdReleaseUrgency { unknown, low, medium, high, critical }
+
+enum FwupdTrustFlag { payload, metadata }
+
 class FwupdException implements Exception {}
 
 class FwupdNotSupportedException extends FwupdException {}
@@ -136,27 +140,48 @@ class FwupdPlugin {
 }
 
 class FwupdUpgrade {
+  final String? appstreamId;
+  final String? checksum;
+  final DateTime? created;
   final String description;
+  final String? filename;
   final String homepage;
   final String license;
+  final List<String> locations;
   final String name;
+  final String? protocol;
+  final String? remoteId;
   final int size;
   final String summary;
+  final Set<FwupdTrustFlag> trustFlags;
+  final FwupdReleaseUrgency urgency;
+  final String? uri;
   final String vendor;
   final String version;
 
   FwupdUpgrade(
-      {this.description = '',
+      {this.appstreamId,
+      this.checksum,
+      this.created,
+      this.description = '',
+      this.filename,
       this.homepage = '',
       this.license = '',
+      this.locations = const [],
       required this.name,
+      this.protocol,
+      this.remoteId,
       this.size = 0,
       this.summary = '',
+      this.trustFlags = const {},
+      this.urgency = FwupdReleaseUrgency.unknown,
+      this.uri,
       this.vendor = '',
       this.version = ''});
 
   @override
-  String toString() => 'FwupdUpgrade(name: $name)';
+  String toString() =>
+      "FwupdUpgrade(appstreamId: $appstreamId, checksum: $checksum, created: $created, description: '$description', filename: $filename, homepage: $homepage, license: $license, locations: $locations, name: '$name', protocol: $protocol, remoteId: $remoteId, size: $size, trustFlags: $trustFlags, urgency: $urgency, uri: $uri, vendor: '$vendor', version: '$version')";
 }
 
 /// A client that connects to fwupd.
@@ -309,10 +334,6 @@ class FwupdClient {
   }
 
   FwupdDevice _parseDevice(Map<String, DBusValue> properties) {
-    var createdTime = (properties['Created'] as DBusUint64?)?.value;
-    var created = createdTime != null
-        ? DateTime.fromMillisecondsSinceEpoch(createdTime * 1000, isUtc: true)
-        : null;
     var flagsValue = (properties['Flags'] as DBusUint64?)?.value ?? 0;
     var flags = <FwupdDeviceFlag>{};
     for (var i = 0; i < FwupdDeviceFlag.values.length; i++) {
@@ -327,7 +348,7 @@ class FwupdClient {
         : FwupdVersionFormat.unknown;
     return FwupdDevice(
         checksum: (properties['Checksum'] as DBusString?)?.value,
-        created: created,
+        created: _parseDateTime(properties['Created']),
         deviceId: (properties['DeviceId'] as DBusString?)?.value ?? '',
         name: (properties['Name'] as DBusString?)?.value ?? '',
         flags: flags,
@@ -350,18 +371,51 @@ class FwupdClient {
         versionFormat: versionFormat);
   }
 
+  DateTime? _parseDateTime(DBusValue? value) {
+    if (value == null) {
+      return null;
+    }
+    return DateTime.fromMillisecondsSinceEpoch(
+        (value as DBusUint64).value * 1000,
+        isUtc: true);
+  }
+
   FwupdPlugin _parsePlugin(Map<String, DBusValue> properties) {
     return FwupdPlugin(name: (properties['Name'] as DBusString?)?.value ?? '');
   }
 
   FwupdUpgrade _parseUpgrade(Map<String, DBusValue> properties) {
+    var trustFlagsValue = (properties['TrustFlags'] as DBusUint64?)?.value ?? 0;
+    var trustFlags = <FwupdTrustFlag>{};
+    for (var i = 0; i < FwupdTrustFlag.values.length; i++) {
+      if (trustFlagsValue & (1 << i) != 0) {
+        trustFlags.add(FwupdTrustFlag.values[i]);
+      }
+    }
+    var urgencyValue = (properties['Urgency'] as DBusUint32?)?.value ?? 0;
+    var urgency = urgencyValue < FwupdReleaseUrgency.values.length
+        ? FwupdReleaseUrgency.values[urgencyValue]
+        : FwupdReleaseUrgency.unknown;
     return FwupdUpgrade(
+        appstreamId: (properties['AppstreamId'] as DBusString?)?.value,
+        checksum: (properties['Checksum'] as DBusString?)?.value,
+        created: _parseDateTime(properties['Created']),
         description: (properties['Description'] as DBusString?)?.value ?? '',
+        filename: (properties['Filename'] as DBusString?)?.value,
         homepage: (properties['Homepage'] as DBusString?)?.value ?? '',
         license: (properties['License'] as DBusString?)?.value ?? '',
+        locations: (properties['Locations'] as DBusArray?)
+                ?.children
+                .map((value) => (value as DBusString).value)
+                .toList() ??
+            [],
         name: (properties['Name'] as DBusString?)?.value ?? '',
+        protocol: (properties['Protocol'] as DBusString?)?.value,
         size: (properties['Size'] as DBusUint64?)?.value ?? 0,
         summary: (properties['Summary'] as DBusString?)?.value ?? '',
+        trustFlags: trustFlags,
+        urgency: urgency,
+        uri: (properties['Uri'] as DBusString?)?.value,
         vendor: (properties['Vendor'] as DBusString?)?.value ?? '',
         version: (properties['Version'] as DBusString?)?.value ?? '');
   }
