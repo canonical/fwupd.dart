@@ -187,6 +187,7 @@ void main() {
         'Plugin': DBusString('plugin1')
       },
       {
+        'Checksum': DBusString('CHECKSUM'),
         'Created': DBusUint64(1628138280),
         'DeviceId': DBusString('childId'),
         'Flags': DBusUint64(10),
@@ -206,6 +207,7 @@ void main() {
     var devices = await client.getDevices();
     expect(devices, hasLength(2));
     var device = devices[0];
+    expect(device.checksum, isNull);
     expect(device.created, isNull);
     expect(device.deviceId, equals('parentId'));
     expect(device.flags, isEmpty);
@@ -217,6 +219,7 @@ void main() {
     expect(device.summary, isNull);
 
     device = devices[1];
+    expect(device.checksum, equals('CHECKSUM'));
     expect(device.created, equals(DateTime.utc(2021, 8, 5, 4, 38)));
     expect(device.deviceId, equals('childId'));
     expect(device.flags,

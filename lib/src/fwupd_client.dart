@@ -30,6 +30,7 @@ class FwupdNotSupportedException extends FwupdException {}
 class FwupdNothingToDoException extends FwupdException {}
 
 class FwupdDevice {
+  final String? checksum;
   final DateTime? created;
   final String deviceId;
   final Set<FwupdDeviceFlag> flags;
@@ -41,7 +42,8 @@ class FwupdDevice {
   final String? summary;
 
   FwupdDevice(
-      {this.created,
+      {this.checksum,
+      this.created,
       required this.deviceId,
       this.flags = const {},
       this.guid = const [],
@@ -53,7 +55,7 @@ class FwupdDevice {
 
   @override
   String toString() =>
-      "FwupdDevice(created: $created, deviceId: $deviceId, flags: $flags, guid: $guid, icon: $icon, name: '$name', parentDeviceId: $parentDeviceId, plugin: $plugin, summary: $summary)";
+      "FwupdDevice(checksum: $checksum, created: $created, deviceId: $deviceId, flags: $flags, guid: $guid, icon: $icon, name: '$name', parentDeviceId: $parentDeviceId, plugin: $plugin, summary: $summary)";
 }
 
 class FwupdPlugin {
@@ -253,6 +255,7 @@ class FwupdClient {
       }
     }
     return FwupdDevice(
+        checksum: (properties['Checksum'] as DBusString?)?.value,
         created: created,
         deviceId: (properties['DeviceId'] as DBusString?)?.value ?? '',
         name: (properties['Name'] as DBusString?)?.value ?? '',
