@@ -191,11 +191,13 @@ class FwupdClient {
         replySignature: DBusSignature(''));
   }
 
+  /// Unlock a device to allow firmware access.
   Future<void> unlock(String id) async {
     await _root.callMethod('org.freedesktop.fwupd', 'Unlock', [DBusString(id)],
         replySignature: DBusSignature(''));
   }
 
+  /// Verify firmware on a device.
   Future<void> verify(String id) async {
     await _root.callMethod('org.freedesktop.fwupd', 'Verify', [DBusString(id)],
         replySignature: DBusSignature(''));
