@@ -10,7 +10,13 @@ enum FwupdStatus {
   deviceRestart,
   deviceWrite,
   deviceVerify,
-  scheduling
+  scheduling,
+  downloading,
+  deviceRead,
+  deviceErase,
+  waitingForAuth,
+  deviceBusy,
+  shutdown
 }
 
 enum FwupdDeviceFlag {
@@ -20,7 +26,43 @@ enum FwupdDeviceFlag {
   requireAc,
   locked,
   supported,
-  needsBootloader
+  needsBootloader,
+  registered,
+  needsReboot,
+  reported,
+  notified,
+  useRuntimeVersion,
+  installParentFirst,
+  isBootloader,
+  waitForReplug,
+  ignoreValidation,
+  trusted,
+  needsShutdown,
+  anotherWriteRequired,
+  noAutoInstanceIds,
+  needsActivation,
+  ensureServer,
+  historical,
+  onlySupported,
+  willDisappear,
+  canVerify,
+  canVerifyImage,
+  dualImage,
+  selfRecovery,
+  usableDuringUpdate,
+  versionCheckRequired,
+  installAllReleases,
+  mdSetName,
+  mdSetVerFmt,
+  addCounterpartGuids,
+  noGuidMatching,
+  updatableHidden,
+  skipsRestart,
+  hasMultipleBranches,
+  backupBeforeInstall,
+  mdSetIcon,
+  wildcardInstall,
+  onlyVersionUpgrade
 }
 
 enum FwupdVersionFormat {
