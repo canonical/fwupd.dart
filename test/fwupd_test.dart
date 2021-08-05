@@ -196,7 +196,9 @@ void main() {
         'Name': DBusString('Child Device'),
         'ParentDeviceId': DBusString('parentId'),
         'Plugin': DBusString('plugin2'),
-        'Summary': DBusString('A child plugin')
+        'Summary': DBusString('A child plugin'),
+        'Vendor': DBusString('VENDOR'),
+        'VendorId': DBusString('VENDOR-ID')
       }
     ]);
     await fwupd.start();
@@ -217,6 +219,8 @@ void main() {
     expect(device.parentDeviceId, isNull);
     expect(device.plugin, equals('plugin1'));
     expect(device.summary, isNull);
+    expect(device.vendor, isNull);
+    expect(device.vendorId, isNull);
 
     device = devices[1];
     expect(device.checksum, equals('CHECKSUM'));
@@ -230,6 +234,8 @@ void main() {
     expect(device.parentDeviceId, equals('parentId'));
     expect(device.plugin, equals('plugin2'));
     expect(device.summary, equals('A child plugin'));
+    expect(device.vendor, equals('VENDOR'));
+    expect(device.vendorId, equals('VENDOR-ID'));
 
     await client.close();
   });

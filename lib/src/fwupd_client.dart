@@ -40,6 +40,8 @@ class FwupdDevice {
   final String? parentDeviceId;
   final String plugin;
   final String? summary;
+  final String? vendor;
+  final String? vendorId;
 
   FwupdDevice(
       {this.checksum,
@@ -51,11 +53,13 @@ class FwupdDevice {
       required this.name,
       this.parentDeviceId,
       required this.plugin,
-      this.summary});
+      this.summary,
+      this.vendor,
+      this.vendorId});
 
   @override
   String toString() =>
-      "FwupdDevice(checksum: $checksum, created: $created, deviceId: $deviceId, flags: $flags, guid: $guid, icon: $icon, name: '$name', parentDeviceId: $parentDeviceId, plugin: $plugin, summary: $summary)";
+      "FwupdDevice(checksum: $checksum, created: $created, deviceId: $deviceId, flags: $flags, guid: $guid, icon: $icon, name: '$name', parentDeviceId: $parentDeviceId, plugin: $plugin, summary: $summary, vendor: $vendor, vendorId: $vendorId)";
 }
 
 class FwupdPlugin {
@@ -272,7 +276,9 @@ class FwupdClient {
             [],
         parentDeviceId: (properties['ParentDeviceId'] as DBusString?)?.value,
         plugin: (properties['Plugin'] as DBusString?)?.value ?? '',
-        summary: (properties['Summary'] as DBusString?)?.value);
+        summary: (properties['Summary'] as DBusString?)?.value,
+        vendor: (properties['Vendor'] as DBusString?)?.value,
+        vendorId: (properties['VendorId'] as DBusString?)?.value);
   }
 
   FwupdPlugin _parsePlugin(Map<String, DBusValue> properties) {
