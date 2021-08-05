@@ -17,6 +17,8 @@ class MockFwupdObject extends DBusObject {
       properties['HostMachineId'] = DBusString(server.hostMachineId);
       properties['HostProduct'] = DBusString(server.hostProduct);
       properties['HostSecurityId'] = DBusString(server.hostSecurityId);
+      properties['Percentage'] = DBusUint32(server.percentage);
+      properties['Status'] = DBusUint32(server.status);
     }
     return DBusGetAllPropertiesResponse(properties);
   }
@@ -107,9 +109,11 @@ class MockFwupdServer extends DBusClient {
   final String hostProduct;
   final String hostSecurityId;
   final List<Map<String, DBusValue>> history;
+  final int percentage;
   final List<Map<String, DBusValue>> plugins;
   final List<Map<String, DBusValue>> releases;
   final List<Map<String, DBusValue>> remotes;
+  final int status;
   final Map<String, List<Map<String, DBusValue>>> upgrades;
 
   MockFwupdServer(DBusAddress clientAddress,
@@ -121,9 +125,11 @@ class MockFwupdServer extends DBusClient {
       this.hostProduct = '',
       this.hostSecurityId = '',
       this.history = const [],
+      this.percentage = 0,
       this.plugins = const [],
       this.releases = const [],
       this.remotes = const [],
+      this.status = 0,
       this.upgrades = const {}})
       : super(clientAddress);
 
@@ -147,6 +153,23 @@ void main() {
     await client.connect();
 
     expect(client.daemonVersion, equals('1.2.3'));
+
+    await client.close();
+  });
+
+  test('daemon status', () async {
+    var server = DBusServer();
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var fwupd = MockFwupdServer(clientAddress, status: 3, percentage: 42);
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    await client.connect();
+
+    expect(client.status, equals(FwupdStatus.decompressing));
+    expect(client.percentage, equals(42));
 
     await client.close();
   });

@@ -2,6 +2,17 @@ import 'dart:async';
 
 import 'package:dbus/dbus.dart';
 
+enum FwupdStatus {
+  unknown,
+  idle,
+  loading,
+  decompressing,
+  deviceRestart,
+  deviceWrite,
+  deviceVerify,
+  scheduling
+}
+
 class FwupdException implements Exception {}
 
 class FwupdNotSupportedException extends FwupdException {}
@@ -83,6 +94,17 @@ class FwupdClient {
   /// The version of the fwupd daemon.
   String get daemonVersion =>
       (_properties['DaemonVersion'] as DBusString).value;
+
+  /// The status of the fwupd daemon.
+  FwupdStatus get status {
+    var value = (_properties['Status'] as DBusUint32).value;
+    return value < FwupdStatus.values.length
+        ? FwupdStatus.values[value]
+        : FwupdStatus.unknown;
+  }
+
+  /// The percentage of the current job in process.
+  int get percentage => (_properties['Percentage'] as DBusUint32).value;
 
   /// Stream of property names as they change.
   Stream<List<String>> get propertiesChanged =>
