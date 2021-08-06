@@ -81,9 +81,17 @@ enum FwupdVersionFormat {
   hex
 }
 
-enum FwupdReleaseUrgency { unknown, low, medium, high, critical }
+enum FwupdReleaseFlag {
+  trustedPayload,
+  trustedMetadata,
+  isUpgrade,
+  isDowngrade,
+  blockedVersion,
+  blockedApproval,
+  isAlternateBranch
+}
 
-enum FwupdTrustFlag { payload, metadata }
+enum FwupdReleaseUrgency { unknown, low, medium, high, critical }
 
 class FwupdException implements Exception {}
 
@@ -139,7 +147,7 @@ class FwupdPlugin {
   String toString() => 'FwupdDevice(name: $name)';
 }
 
-class FwupdUpgrade {
+class FwupdRelease {
   final String? appstreamId;
   final String? checksum;
   final DateTime? created;
@@ -153,13 +161,13 @@ class FwupdUpgrade {
   final String? remoteId;
   final int size;
   final String summary;
-  final Set<FwupdTrustFlag> trustFlags;
+  final Set<FwupdReleaseFlag> flags;
   final FwupdReleaseUrgency urgency;
   final String? uri;
   final String vendor;
   final String version;
 
-  FwupdUpgrade(
+  FwupdRelease(
       {this.appstreamId,
       this.checksum,
       this.created,
@@ -173,7 +181,7 @@ class FwupdUpgrade {
       this.remoteId,
       this.size = 0,
       this.summary = '',
-      this.trustFlags = const {},
+      this.flags = const {},
       this.urgency = FwupdReleaseUrgency.unknown,
       this.uri,
       this.vendor = '',
@@ -181,7 +189,7 @@ class FwupdUpgrade {
 
   @override
   String toString() =>
-      "FwupdUpgrade(appstreamId: $appstreamId, checksum: $checksum, created: $created, description: '$description', filename: $filename, homepage: $homepage, license: $license, locations: $locations, name: '$name', protocol: $protocol, remoteId: $remoteId, size: $size, trustFlags: $trustFlags, urgency: $urgency, uri: $uri, vendor: '$vendor', version: '$version')";
+      "FwupdRelease(appstreamId: $appstreamId, checksum: $checksum, created: $created, description: '$description', filename: $filename, homepage: $homepage, license: $license, locations: $locations, name: '$name', protocol: $protocol, remoteId: $remoteId, size: $size, flags: $flags, urgency: $urgency, uri: $uri, vendor: '$vendor', version: '$version')";
 }
 
 /// A client that connects to fwupd.
@@ -262,7 +270,7 @@ class FwupdClient {
         .toList();
   }
 
-  Future<List<FwupdUpgrade>> getUpgrades(String deviceId) async {
+  Future<List<FwupdRelease>> getUpgrades(String deviceId) async {
     DBusMethodResponse response;
     try {
       response = await _root.callMethod(
@@ -384,19 +392,19 @@ class FwupdClient {
     return FwupdPlugin(name: (properties['Name'] as DBusString?)?.value ?? '');
   }
 
-  FwupdUpgrade _parseUpgrade(Map<String, DBusValue> properties) {
-    var trustFlagsValue = (properties['TrustFlags'] as DBusUint64?)?.value ?? 0;
-    var trustFlags = <FwupdTrustFlag>{};
-    for (var i = 0; i < FwupdTrustFlag.values.length; i++) {
-      if (trustFlagsValue & (1 << i) != 0) {
-        trustFlags.add(FwupdTrustFlag.values[i]);
+  FwupdRelease _parseUpgrade(Map<String, DBusValue> properties) {
+    var flagsValue = (properties['TrustFlags'] as DBusUint64?)?.value ?? 0;
+    var flags = <FwupdReleaseFlag>{};
+    for (var i = 0; i < FwupdReleaseFlag.values.length; i++) {
+      if (flagsValue & (1 << i) != 0) {
+        flags.add(FwupdReleaseFlag.values[i]);
       }
     }
     var urgencyValue = (properties['Urgency'] as DBusUint32?)?.value ?? 0;
     var urgency = urgencyValue < FwupdReleaseUrgency.values.length
         ? FwupdReleaseUrgency.values[urgencyValue]
         : FwupdReleaseUrgency.unknown;
-    return FwupdUpgrade(
+    return FwupdRelease(
         appstreamId: (properties['AppstreamId'] as DBusString?)?.value,
         checksum: (properties['Checksum'] as DBusString?)?.value,
         created: _parseDateTime(properties['Created']),
@@ -413,7 +421,7 @@ class FwupdClient {
         protocol: (properties['Protocol'] as DBusString?)?.value,
         size: (properties['Size'] as DBusUint64?)?.value ?? 0,
         summary: (properties['Summary'] as DBusString?)?.value ?? '',
-        trustFlags: trustFlags,
+        flags: flags,
         urgency: urgency,
         uri: (properties['Uri'] as DBusString?)?.value,
         vendor: (properties['Vendor'] as DBusString?)?.value ?? '',

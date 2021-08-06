@@ -9,9 +9,9 @@ void main() async {
   for (var device in devices) {
     print('${device.name}');
     try {
-      var upgrades = await client.getUpgrades(device.deviceId);
-      for (var upgrade in upgrades) {
-        print('  ${upgrade.name}');
+      var releases = await client.getUpgrades(device.deviceId);
+      for (var release in releases) {
+        print('  ${release.name}');
       }
     } on FwupdException {
       // No upgrades available.

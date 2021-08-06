@@ -300,7 +300,7 @@ void main() {
           'Protocol': DBusString('PROTOCOL'),
           'Size': DBusUint64(654321),
           'Summary': DBusString('SUMMARY2'),
-          'TrustFlags': DBusUint64(2),
+          'TrustFlags': DBusUint64(4),
           'Urgency': DBusUint32(3),
           'Uri': DBusString('https://example.com/test.cab'),
           'Vendor': DBusString('VENDOR'),
@@ -329,7 +329,7 @@ void main() {
     expect(upgrade.protocol, isNull);
     expect(upgrade.size, equals(123456));
     expect(upgrade.summary, equals('SUMMARY1'));
-    expect(upgrade.trustFlags, isEmpty);
+    expect(upgrade.flags, isEmpty);
     expect(upgrade.urgency, equals(FwupdReleaseUrgency.unknown));
     expect(upgrade.vendor, equals('VENDOR'));
     expect(upgrade.version, equals('1.2'));
@@ -347,7 +347,7 @@ void main() {
     expect(upgrade.protocol, equals('PROTOCOL'));
     expect(upgrade.size, equals(654321));
     expect(upgrade.summary, equals('SUMMARY2'));
-    expect(upgrade.trustFlags, equals({FwupdTrustFlag.metadata}));
+    expect(upgrade.flags, equals({FwupdReleaseFlag.isUpgrade}));
     expect(upgrade.urgency, equals(FwupdReleaseUrgency.high));
     expect(upgrade.vendor, equals('VENDOR'));
     expect(upgrade.version, equals('3.4'));
