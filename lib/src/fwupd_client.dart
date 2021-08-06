@@ -154,6 +154,7 @@ class FwupdRelease {
   final String description;
   final String? filename;
   final String homepage;
+  final int installDuration;
   final String license;
   final List<String> locations;
   final String name;
@@ -174,6 +175,7 @@ class FwupdRelease {
       this.description = '',
       this.filename,
       this.homepage = '',
+      this.installDuration = 0,
       this.license = '',
       this.locations = const [],
       required this.name,
@@ -291,7 +293,7 @@ class FwupdClient {
         .children
         .map((child) => (child as DBusDict).children.map((key, value) =>
             MapEntry((key as DBusString).value, (value as DBusVariant).value)))
-        .map((properties) => _parseUpgrade(properties))
+        .map((properties) => _parseRelease(properties))
         .toList();
   }
 
@@ -392,7 +394,7 @@ class FwupdClient {
     return FwupdPlugin(name: (properties['Name'] as DBusString?)?.value ?? '');
   }
 
-  FwupdRelease _parseUpgrade(Map<String, DBusValue> properties) {
+  FwupdRelease _parseRelease(Map<String, DBusValue> properties) {
     var flagsValue = (properties['TrustFlags'] as DBusUint64?)?.value ?? 0;
     var flags = <FwupdReleaseFlag>{};
     for (var i = 0; i < FwupdReleaseFlag.values.length; i++) {
@@ -411,6 +413,8 @@ class FwupdClient {
         description: (properties['Description'] as DBusString?)?.value ?? '',
         filename: (properties['Filename'] as DBusString?)?.value,
         homepage: (properties['Homepage'] as DBusString?)?.value ?? '',
+        installDuration:
+            (properties['InstallDuration'] as DBusUint32?)?.value ?? 0,
         license: (properties['License'] as DBusString?)?.value ?? '',
         locations: (properties['Locations'] as DBusArray?)
                 ?.children

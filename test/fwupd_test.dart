@@ -294,6 +294,7 @@ void main() {
           'Description': DBusString('DESCRIPTION2'),
           'Filename': DBusString('test.cab'),
           'Homepage': DBusString('http://example.com/2'),
+          'InstallDuration': DBusUint32(3600),
           'License': DBusString('GPL-3.0'),
           'Locations': DBusArray.string(['https://example.com/test.cab']),
           'Name': DBusString('NAME2'),
@@ -323,6 +324,7 @@ void main() {
     expect(upgrade.description, equals('DESCRIPTION1'));
     expect(upgrade.filename, isNull);
     expect(upgrade.homepage, equals('http://example.com/1'));
+    expect(upgrade.installDuration, equals(0));
     expect(upgrade.license, equals('GPL-3.0'));
     expect(upgrade.locations, isEmpty);
     expect(upgrade.name, equals('NAME1'));
@@ -341,6 +343,7 @@ void main() {
     expect(upgrade.description, equals('DESCRIPTION2'));
     expect(upgrade.filename, equals('test.cab'));
     expect(upgrade.homepage, equals('http://example.com/2'));
+    expect(upgrade.installDuration, equals(3600));
     expect(upgrade.license, equals('GPL-3.0'));
     expect(upgrade.locations, equals(['https://example.com/test.cab']));
     expect(upgrade.name, equals('NAME2'));
