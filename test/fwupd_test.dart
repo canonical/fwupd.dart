@@ -13,12 +13,16 @@ class MockFwupdObject extends DBusObject {
   Future<DBusMethodResponse> getAllProperties(String interface) async {
     var properties = <String, DBusValue>{};
     if (interface == 'org.freedesktop.fwupd') {
-      properties['DaemonVersion'] = DBusString(server.daemonVersion);
-      properties['HostMachineId'] = DBusString(server.hostMachineId);
-      properties['HostProduct'] = DBusString(server.hostProduct);
-      properties['HostSecurityId'] = DBusString(server.hostSecurityId);
-      properties['Percentage'] = DBusUint32(server.percentage);
-      properties['Status'] = DBusUint32(server.status);
+      properties.addAll({
+        'DaemonVersion': DBusString(server.daemonVersion),
+        'HostMachineId': DBusString(server.hostMachineId),
+        'HostProduct': DBusString(server.hostProduct),
+        'HostSecurityId': DBusString(server.hostSecurityId),
+        'Interactive': DBusBoolean(server.interactive),
+        'Percentage': DBusUint32(server.percentage),
+        'Status': DBusUint32(server.status),
+        'Tainted': DBusBoolean(server.tainted)
+      });
     }
     return DBusGetAllPropertiesResponse(properties);
   }
@@ -109,11 +113,13 @@ class MockFwupdServer extends DBusClient {
   final String hostProduct;
   final String hostSecurityId;
   final List<Map<String, DBusValue>> history;
+  final bool interactive;
   final int percentage;
   final List<Map<String, DBusValue>> plugins;
   final List<Map<String, DBusValue>> releases;
   final List<Map<String, DBusValue>> remotes;
   final int status;
+  final bool tainted;
   final Map<String, List<Map<String, DBusValue>>> upgrades;
 
   MockFwupdServer(DBusAddress clientAddress,
@@ -125,11 +131,13 @@ class MockFwupdServer extends DBusClient {
       this.hostProduct = '',
       this.hostSecurityId = '',
       this.history = const [],
+      this.interactive = false,
       this.percentage = 0,
       this.plugins = const [],
       this.releases = const [],
       this.remotes = const [],
       this.status = 0,
+      this.tainted = false,
       this.upgrades = const {}})
       : super(clientAddress);
 
@@ -153,6 +161,59 @@ void main() {
     await client.connect();
 
     expect(client.daemonVersion, equals('1.2.3'));
+
+    await client.close();
+  });
+
+  test('daemon host details', () async {
+    var server = DBusServer();
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var fwupd = MockFwupdServer(clientAddress,
+        hostMachineId: 'MACHINE-ID',
+        hostProduct: 'PRODUCT',
+        hostSecurityId: 'SECURITY-ID');
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    await client.connect();
+
+    expect(client.hostMachineId, equals('MACHINE-ID'));
+    expect(client.hostProduct, equals('PRODUCT'));
+    expect(client.hostSecurityId, equals('SECURITY-ID'));
+
+    await client.close();
+  });
+
+  test('daemon interactive', () async {
+    var server = DBusServer();
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var fwupd = MockFwupdServer(clientAddress, interactive: true);
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    await client.connect();
+
+    expect(client.interactive, isTrue);
+
+    await client.close();
+  });
+
+  test('daemon tainted', () async {
+    var server = DBusServer();
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var fwupd = MockFwupdServer(clientAddress, tainted: true);
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    await client.connect();
+
+    expect(client.tainted, isTrue);
 
     await client.close();
   });

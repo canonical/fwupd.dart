@@ -213,6 +213,25 @@ class FwupdClient {
   String get daemonVersion =>
       (_properties['DaemonVersion'] as DBusString?)?.value ?? '';
 
+  /// The product name for the host.
+  String get hostProduct =>
+      (_properties['HostProduct'] as DBusString?)?.value ?? '';
+
+  /// The machine ID for the host.
+  String get hostMachineId =>
+      (_properties['HostMachineId'] as DBusString?)?.value ?? '';
+
+  /// The security ID for the host.
+  String get hostSecurityId =>
+      (_properties['HostSecurityId'] as DBusString?)?.value ?? '';
+
+  /// True if the daemon has been tainted with a 3rd party plugin.
+  bool get tainted => (_properties['Tainted'] as DBusBoolean?)?.value ?? false;
+
+  /// True if the daemon is running on an interactive terminal.
+  bool get interactive =>
+      (_properties['Interactive'] as DBusBoolean?)?.value ?? false;
+
   /// The status of the fwupd daemon.
   FwupdStatus get status {
     var value = (_properties['Status'] as DBusUint32?)?.value;
