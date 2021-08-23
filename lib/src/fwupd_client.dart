@@ -251,8 +251,8 @@ class FwupdClient {
   FwupdClient({DBusClient? bus})
       : _bus = bus ?? DBusClient.system(),
         _closeBus = bus == null {
-    _root =
-        DBusRemoteObject(_bus, 'org.freedesktop.fwupd', DBusObjectPath('/'));
+    _root = DBusRemoteObject(_bus,
+        name: 'org.freedesktop.fwupd', path: DBusObjectPath('/'));
   }
 
   /// Connects to the fwupd daemon.
