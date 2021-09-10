@@ -1,4 +1,5 @@
 [![Pub Package](https://img.shields.io/pub/v/fwupd.svg)](https://pub.dev/packages/fwupd)
+[![codecov](https://codecov.io/gh/canonical/fwupd.dart/branch/main/graph/badge.svg?token=0TTBEYP5BD)](https://codecov.io/gh/canonical/fwupd.dart)
 
 Provides a client to connect to [fwupd](https://fwupd.org/) - the service that does firmware updates on Linux.
 
