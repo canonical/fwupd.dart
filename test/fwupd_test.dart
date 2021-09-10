@@ -151,22 +151,24 @@ class MockFwupdServer extends DBusClient {
 void main() {
   test('daemon version', () async {
     var server = DBusServer();
+    addTearDown(() async => await server.close());
     var clientAddress =
         await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
 
     var fwupd = MockFwupdServer(clientAddress, daemonVersion: '1.2.3');
+    addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
     var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
     await client.connect();
 
     expect(client.daemonVersion, equals('1.2.3'));
-
-    await client.close();
   });
 
   test('daemon host details', () async {
     var server = DBusServer();
+    addTearDown(() async => await server.close());
     var clientAddress =
         await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
 
@@ -174,69 +176,73 @@ void main() {
         hostMachineId: 'MACHINE-ID',
         hostProduct: 'PRODUCT',
         hostSecurityId: 'SECURITY-ID');
+    addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
     var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
     await client.connect();
 
     expect(client.hostMachineId, equals('MACHINE-ID'));
     expect(client.hostProduct, equals('PRODUCT'));
     expect(client.hostSecurityId, equals('SECURITY-ID'));
-
-    await client.close();
   });
 
   test('daemon interactive', () async {
     var server = DBusServer();
+    addTearDown(() async => await server.close());
     var clientAddress =
         await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
 
     var fwupd = MockFwupdServer(clientAddress, interactive: true);
+    addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
     var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
     await client.connect();
 
     expect(client.interactive, isTrue);
-
-    await client.close();
   });
 
   test('daemon tainted', () async {
     var server = DBusServer();
+    addTearDown(() async => await server.close());
     var clientAddress =
         await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
 
     var fwupd = MockFwupdServer(clientAddress, tainted: true);
+    addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
     var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
     await client.connect();
 
     expect(client.tainted, isTrue);
-
-    await client.close();
   });
 
   test('daemon status', () async {
     var server = DBusServer();
+    addTearDown(() async => await server.close());
     var clientAddress =
         await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
 
     var fwupd = MockFwupdServer(clientAddress, status: 3, percentage: 42);
+    addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
     var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
     await client.connect();
 
     expect(client.status, equals(FwupdStatus.decompressing));
     expect(client.percentage, equals(42));
-
-    await client.close();
   });
 
   test('get devices', () async {
     var server = DBusServer();
+    addTearDown(() async => await server.close());
     var clientAddress =
         await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
 
@@ -264,9 +270,11 @@ void main() {
         'VersionFormat': DBusUint32(2)
       }
     ]);
+    addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
     var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
     await client.connect();
 
     var devices = await client.getDevices();
@@ -303,12 +311,11 @@ void main() {
     expect(device.vendorId, equals('VENDOR-ID'));
     expect(device.version, equals('42'));
     expect(device.versionFormat, equals(FwupdVersionFormat.number));
-
-    await client.close();
   });
 
   test('get plugins', () async {
     var server = DBusServer();
+    addTearDown(() async => await server.close());
     var clientAddress =
         await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
 
@@ -316,9 +323,11 @@ void main() {
       {'Name': DBusString('plugin1')},
       {'Name': DBusString('plugin2')}
     ]);
+    addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
     var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
     await client.connect();
 
     var plugins = await client.getPlugins();
@@ -327,12 +336,11 @@ void main() {
     expect(plugin.name, equals('plugin1'));
     plugin = plugins[1];
     expect(plugin.name, equals('plugin2'));
-
-    await client.close();
   });
 
   test('get upgrades', () async {
     var server = DBusServer();
+    addTearDown(() async => await server.close());
     var clientAddress =
         await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
 
@@ -370,9 +378,11 @@ void main() {
         }
       ]
     });
+    addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
     var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
     await client.connect();
 
     var upgrades = await client.getUpgrades('id1');
@@ -415,7 +425,5 @@ void main() {
     expect(upgrade.urgency, equals(FwupdReleaseUrgency.high));
     expect(upgrade.vendor, equals('VENDOR'));
     expect(upgrade.version, equals('3.4'));
-
-    await client.close();
   });
 }
