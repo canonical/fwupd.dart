@@ -20,6 +20,12 @@ class MockFwupdDevice {
   final String? version;
   final int? versionFormat;
 
+  var activated = false;
+  var resultsCleared = false;
+  var unlocked = false;
+  var verified = false;
+  var updateVerified = false;
+
   MockFwupdDevice(
       {this.checksum,
       this.created,
@@ -68,23 +74,28 @@ class MockFwupdObject extends DBusObject {
 
     switch (methodCall.name) {
       case 'Activate':
-        //var id = (methodCall.values[0] as DBusString).value;
+        var id = (methodCall.values[0] as DBusString).value;
+        server._findDeviceById(id)!.activated = true;
         return DBusMethodSuccessResponse();
 
       case 'ClearResults':
-        //var id = (methodCall.values[0] as DBusString).value;
+        var id = (methodCall.values[0] as DBusString).value;
+        server._findDeviceById(id)!.resultsCleared = true;
         return DBusMethodSuccessResponse();
 
       case 'Unlock':
-        //var id = (methodCall.values[0] as DBusString).value;
+        var id = (methodCall.values[0] as DBusString).value;
+        server._findDeviceById(id)!.unlocked = true;
         return DBusMethodSuccessResponse();
 
       case 'Verify':
-        //var id = (methodCall.values[0] as DBusString).value;
+        var id = (methodCall.values[0] as DBusString).value;
+        server._findDeviceById(id)!.verified = true;
         return DBusMethodSuccessResponse();
 
       case 'VerifyUpdate':
-        //var id = (methodCall.values[0] as DBusString).value;
+        var id = (methodCall.values[0] as DBusString).value;
+        server._findDeviceById(id)!.updateVerified = true;
         return DBusMethodSuccessResponse();
 
       case 'GetApprovedFirmware':
@@ -227,6 +238,15 @@ class MockFwupdServer extends DBusClient {
     await requestName('org.freedesktop.fwupd');
     _root = MockFwupdObject(this);
     await registerObject(_root);
+  }
+
+  MockFwupdDevice? _findDeviceById(String id) {
+    for (var device in devices) {
+      if (device.deviceId == id) {
+        return device;
+      }
+    }
+    return null;
   }
 }
 
@@ -505,5 +525,105 @@ void main() {
     expect(upgrade.urgency, equals(FwupdReleaseUrgency.high));
     expect(upgrade.vendor, equals('VENDOR'));
     expect(upgrade.version, equals('3.4'));
+  });
+
+  test('activate device', () async {
+    var server = DBusServer();
+    addTearDown(() async => await server.close());
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var device = MockFwupdDevice(deviceId: '1234', name: 'Device 1');
+    var fwupd = MockFwupdServer(clientAddress, devices: [device]);
+    addTearDown(() async => await fwupd.close());
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
+    await client.connect();
+
+    expect(device.activated, isFalse);
+    await client.activate('1234');
+    expect(device.activated, isTrue);
+  });
+
+  test('clear device results', () async {
+    var server = DBusServer();
+    addTearDown(() async => await server.close());
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var device = MockFwupdDevice(deviceId: '1234', name: 'Device 1');
+    var fwupd = MockFwupdServer(clientAddress, devices: [device]);
+    addTearDown(() async => await fwupd.close());
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
+    await client.connect();
+
+    expect(device.resultsCleared, isFalse);
+    await client.clearResults('1234');
+    expect(device.resultsCleared, isTrue);
+  });
+
+  test('unlock device', () async {
+    var server = DBusServer();
+    addTearDown(() async => await server.close());
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var device = MockFwupdDevice(deviceId: '1234', name: 'Device 1');
+    var fwupd = MockFwupdServer(clientAddress, devices: [device]);
+    addTearDown(() async => await fwupd.close());
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
+    await client.connect();
+
+    expect(device.unlocked, isFalse);
+    await client.unlock('1234');
+    expect(device.unlocked, isTrue);
+  });
+
+  test('verify device', () async {
+    var server = DBusServer();
+    addTearDown(() async => await server.close());
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var device = MockFwupdDevice(deviceId: '1234', name: 'Device 1');
+    var fwupd = MockFwupdServer(clientAddress, devices: [device]);
+    addTearDown(() async => await fwupd.close());
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
+    await client.connect();
+
+    expect(device.verified, isFalse);
+    await client.verify('1234');
+    expect(device.verified, isTrue);
+  });
+
+  test('verify device update', () async {
+    var server = DBusServer();
+    addTearDown(() async => await server.close());
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var device = MockFwupdDevice(deviceId: '1234', name: 'Device 1');
+    var fwupd = MockFwupdServer(clientAddress, devices: [device]);
+    addTearDown(() async => await fwupd.close());
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
+    await client.connect();
+
+    expect(device.updateVerified, isFalse);
+    await client.verifyUpdate('1234');
+    expect(device.updateVerified, isTrue);
   });
 }
