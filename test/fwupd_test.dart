@@ -4,6 +4,39 @@ import 'package:dbus/dbus.dart';
 import 'package:test/test.dart';
 import 'package:fwupd/fwupd.dart';
 
+class MockFwupdDevice {
+  final String? checksum;
+  final int? created;
+  final String deviceId;
+  final int? flags;
+  final String name;
+  final List<String>? guid;
+  final List<String>? icon;
+  final String? parentDeviceId;
+  final String? plugin;
+  final String? summary;
+  final String? vendor;
+  final String? vendorId;
+  final String? version;
+  final int? versionFormat;
+
+  MockFwupdDevice(
+      {this.checksum,
+      this.created,
+      required this.deviceId,
+      this.flags,
+      this.icon = const [],
+      this.name = '',
+      this.guid = const [],
+      this.parentDeviceId,
+      this.plugin,
+      this.summary,
+      this.vendor,
+      this.vendorId,
+      this.version,
+      this.versionFormat});
+}
+
 class MockFwupdObject extends DBusObject {
   final MockFwupdServer server;
 
@@ -57,34 +90,83 @@ class MockFwupdObject extends DBusObject {
       case 'GetApprovedFirmware':
         return DBusMethodSuccessResponse(
             [DBusArray.string(server.approvedFirmware)]);
+
       case 'GetBlockedFirmware':
         return DBusMethodSuccessResponse(
             [DBusArray.string(server.blockedFirmware)]);
+
       case 'GetDevices':
-        return DBusMethodSuccessResponse([
-          DBusArray(DBusSignature('a{sv}'),
-              server.devices.map((e) => DBusDict.stringVariant(e)))
-        ]);
+        var r = <DBusValue>[];
+        for (var device in server.devices) {
+          var d = <String, DBusValue>{
+            'DeviceId': DBusString(device.deviceId),
+            'Name': DBusString(device.name)
+          };
+          if (device.checksum != null) {
+            d['Checksum'] = DBusString(device.checksum!);
+          }
+          if (device.created != null) {
+            d['Created'] = DBusUint64(device.created!);
+          }
+          if (device.flags != null) {
+            d['Flags'] = DBusUint64(device.flags!);
+          }
+          if (device.guid != null) {
+            d['Guid'] = DBusArray.string(device.guid!);
+          }
+          if (device.icon != null) {
+            d['Icon'] = DBusArray.string(device.icon!);
+          }
+          if (device.parentDeviceId != null) {
+            d['ParentDeviceId'] = DBusString(device.parentDeviceId!);
+          }
+          if (device.plugin != null) {
+            d['Plugin'] = DBusString(device.plugin!);
+          }
+          if (device.summary != null) {
+            d['Summary'] = DBusString(device.summary!);
+          }
+          if (device.vendor != null) {
+            d['Vendor'] = DBusString(device.vendor!);
+          }
+          if (device.vendorId != null) {
+            d['VendorId'] = DBusString(device.vendorId!);
+          }
+          if (device.version != null) {
+            d['Version'] = DBusString(device.version!);
+          }
+          if (device.versionFormat != null) {
+            d['VersionFormat'] = DBusUint32(device.versionFormat!);
+          }
+          r.add(DBusDict.stringVariant(d));
+        }
+        return DBusMethodSuccessResponse(
+            [DBusArray(DBusSignature('a{sv}'), r)]);
+
       case 'GetHistory':
         return DBusMethodSuccessResponse([
           DBusArray(DBusSignature('a{sv}'),
               server.history.map((e) => DBusDict.stringVariant(e)))
         ]);
+
       case 'GetPlugins':
         return DBusMethodSuccessResponse([
           DBusArray(DBusSignature('a{sv}'),
               server.plugins.map((e) => DBusDict.stringVariant(e)))
         ]);
+
       case 'GetReleases':
         return DBusMethodSuccessResponse([
           DBusArray(DBusSignature('a{sv}'),
               server.releases.map((e) => DBusDict.stringVariant(e)))
         ]);
+
       case 'GetRemotes':
         return DBusMethodSuccessResponse([
           DBusArray(DBusSignature('a{sv}'),
               server.remotes.map((e) => DBusDict.stringVariant(e)))
         ]);
+
       case 'GetUpgrades':
         var deviceId = (methodCall.values[0] as DBusString).value;
         var upgrades = server.upgrades[deviceId];
@@ -108,7 +190,7 @@ class MockFwupdServer extends DBusClient {
   final List<String> approvedFirmware;
   final List<String> blockedFirmware;
   final String daemonVersion;
-  final List<Map<String, DBusValue>> devices;
+  final List<MockFwupdDevice> devices;
   final String hostMachineId;
   final String hostProduct;
   final String hostSecurityId;
@@ -247,28 +329,26 @@ void main() {
         await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
 
     var fwupd = MockFwupdServer(clientAddress, devices: [
-      {
-        'DeviceId': DBusString('parentId'),
-        'Guid': DBusArray.string(['guid1a', 'guid1b']),
-        'Name': DBusString('Device 1'),
-        'Plugin': DBusString('plugin1')
-      },
-      {
-        'Checksum': DBusString('CHECKSUM'),
-        'Created': DBusUint64(1628138280),
-        'DeviceId': DBusString('childId'),
-        'Flags': DBusUint64(10),
-        'Guid': DBusArray.string(['guid2']),
-        'Icon': DBusArray.string(['computer']),
-        'Name': DBusString('Child Device'),
-        'ParentDeviceId': DBusString('parentId'),
-        'Plugin': DBusString('plugin2'),
-        'Summary': DBusString('A child plugin'),
-        'Vendor': DBusString('VENDOR'),
-        'VendorId': DBusString('VENDOR-ID'),
-        'Version': DBusString('42'),
-        'VersionFormat': DBusUint32(2)
-      }
+      MockFwupdDevice(
+          deviceId: 'parentId',
+          guid: ['guid1a', 'guid1b'],
+          name: 'Device 1',
+          plugin: 'plugin1'),
+      MockFwupdDevice(
+          checksum: 'CHECKSUM',
+          created: 1628138280,
+          deviceId: 'childId',
+          flags: 10,
+          guid: ['guid2'],
+          icon: ['computer'],
+          name: 'Child Device',
+          parentDeviceId: 'parentId',
+          plugin: 'plugin2',
+          summary: 'A child plugin',
+          vendor: 'VENDOR',
+          vendorId: 'VENDOR-ID',
+          version: '42',
+          versionFormat: 2)
     ]);
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
