@@ -445,6 +445,7 @@ class FwupdClient {
             [],
         name: (properties['Name'] as DBusString?)?.value ?? '',
         protocol: (properties['Protocol'] as DBusString?)?.value,
+        remoteId: (properties['RemoteId'] as DBusString?)?.value,
         size: (properties['Size'] as DBusUint64?)?.value ?? 0,
         summary: (properties['Summary'] as DBusString?)?.value ?? '',
         flags: flags,
