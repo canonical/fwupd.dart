@@ -21,8 +21,8 @@ enum FwupdStatus {
 
 enum FwupdDeviceFlag {
   internal,
-  allowOnline,
-  allowOffline,
+  updatable,
+  onlyOffline,
   requireAc,
   locked,
   supported,
@@ -41,7 +41,7 @@ enum FwupdDeviceFlag {
   anotherWriteRequired,
   noAutoInstanceIds,
   needsActivation,
-  ensureServer,
+  ensureSemver,
   historical,
   onlySupported,
   willDisappear,
@@ -53,7 +53,8 @@ enum FwupdDeviceFlag {
   versionCheckRequired,
   installAllReleases,
   mdSetName,
-  mdSetVerFmt,
+  mdSetNameCategory,
+  mdSetVerfmt,
   addCounterpartGuids,
   noGuidMatching,
   updatableHidden,
@@ -62,7 +63,9 @@ enum FwupdDeviceFlag {
   backupBeforeInstall,
   mdSetIcon,
   wildcardInstall,
-  onlyVersionUpgrade
+  onlyVersionUpgrade,
+  unreachable,
+  affectsFde
 }
 
 enum FwupdVersionFormat {
