@@ -400,7 +400,7 @@ void main() {
     expect(device.created, equals(DateTime.utc(2021, 8, 5, 4, 38)));
     expect(device.deviceId, equals('childId'));
     expect(device.flags,
-        equals({FwupdDeviceFlag.allowOnline, FwupdDeviceFlag.requireAc}));
+        equals({FwupdDeviceFlag.updatable, FwupdDeviceFlag.requireAc}));
     expect(device.guid, equals(['guid2']));
     expect(device.name, equals('Child Device'));
     expect(device.icon, equals(['computer']));
