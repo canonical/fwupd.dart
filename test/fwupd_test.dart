@@ -729,4 +729,111 @@ void main() {
     await client.verifyUpdate('1234');
     expect(device.updateVerified, isTrue);
   });
+
+  test('get remotes', () async {
+    var server = DBusServer();
+    addTearDown(() async => await server.close());
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var fwupd = MockFwupdServer(clientAddress, remotes: [
+      {
+        'ApprovalRequired': DBusBoolean(false),
+        'AutomaticReports': DBusBoolean(false),
+        'AutomaticSecurityReports': DBusBoolean(false),
+        'Enabled': DBusBoolean(true),
+        'FilenameCache':
+            DBusString('/usr/share/installed-tests/fwupd/fwupd-tests.xml'),
+        'FilenameSource': DBusString('/etc/fwupd/remotes.d/fwupd-tests.conf'),
+        'Keyring': DBusUint32(1),
+        'ModificationTime': DBusUint64(1624968886),
+        'RemoteId': DBusString('fwupd-tests'),
+        'RemotesDir': DBusString('/var/lib/fwupd/remotes.d'),
+        'Title': DBusString('fwupd test suite'),
+        'Type': DBusUint32(2),
+      },
+      {
+        'Agreement': DBusString('<p>The LVFS is a free service...</p>'),
+        'ApprovalRequired': DBusBoolean(false),
+        'AutomaticReports': DBusBoolean(false),
+        'AutomaticSecurityReports': DBusBoolean(false),
+        'Enabled': DBusBoolean(false),
+        'FilenameCache':
+            DBusString('/var/lib/fwupd/remotes.d/lvfs-testing/metadata.xml.gz'),
+        'FilenameSource': DBusString('/etc/fwupd/remotes.d/lvfs-testing.conf'),
+        'Keyring': DBusUint32(4),
+        'ModificationTime':
+            DBusUint64(4294967296 * 4294967296), // 18446744073709551615
+        'Priority': DBusInt32(1),
+        'RemoteId': DBusString('lvfs-testing'),
+        'RemotesDir': DBusString('/var/lib/fwupd/remotes.d'),
+        'Title': DBusString('Linux Vendor Firmware Service (testing)'),
+        'Type': DBusUint32(1),
+        'Uri': DBusString(
+            'https://cdn.fwupd.org/downloads/firmware-testing.xml.gz'),
+      },
+    ]);
+    addTearDown(() async => await fwupd.close());
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
+    await client.connect();
+
+    var remotes = await client.getRemotes();
+    expect(remotes, hasLength(2));
+
+    var remote = remotes[0];
+    expect(remote.age, DateTime.utc(2021, 6, 29, 12, 14, 46));
+    expect(remote.agreement, isNull);
+    expect(remote.approvalRequired, isFalse);
+    expect(remote.automaticReports, isFalse);
+    expect(remote.automaticSecurityReports, isFalse);
+    expect(remote.checksum, isNull);
+    expect(remote.enabled, isTrue);
+    expect(remote.filenameCache,
+        equals('/usr/share/installed-tests/fwupd/fwupd-tests.xml'));
+    expect(remote.filenameCacheSig, isNull);
+    expect(
+        remote.filenameSource, equals('/etc/fwupd/remotes.d/fwupd-tests.conf'));
+    expect(remote.firmwareBaseUri, isNull);
+    expect(remote.id, equals('fwupd-tests'));
+    expect(remote.keyringKind, equals(FwupdKeyringKind.none));
+    expect(remote.kind, equals(FwupdRemoteKind.local));
+    expect(remote.metadataUri, isNull);
+    expect(remote.password, isNull);
+    expect(remote.priority, isZero);
+    expect(remote.remotesDir, equals('/var/lib/fwupd/remotes.d'));
+    expect(remote.reportUri, isNull);
+    expect(remote.securityReportUri, isNull);
+    expect(remote.title, equals('fwupd test suite'));
+    expect(remote.username, isNull);
+
+    remote = remotes[1];
+    expect(remote.age, isNull);
+    expect(remote.agreement, equals('<p>The LVFS is a free service...</p>'));
+    expect(remote.approvalRequired, isFalse);
+    expect(remote.automaticReports, isFalse);
+    expect(remote.automaticSecurityReports, isFalse);
+    expect(remote.checksum, isNull);
+    expect(remote.enabled, isFalse);
+    expect(remote.filenameCache,
+        equals('/var/lib/fwupd/remotes.d/lvfs-testing/metadata.xml.gz'));
+    expect(remote.filenameCacheSig, isNull);
+    expect(remote.filenameSource,
+        equals('/etc/fwupd/remotes.d/lvfs-testing.conf'));
+    expect(remote.firmwareBaseUri, isNull);
+    expect(remote.id, equals('lvfs-testing'));
+    expect(remote.keyringKind, equals(FwupdKeyringKind.jcat));
+    expect(remote.kind, equals(FwupdRemoteKind.download));
+    expect(remote.metadataUri,
+        equals('https://cdn.fwupd.org/downloads/firmware-testing.xml.gz'));
+    expect(remote.password, isNull);
+    expect(remote.priority, equals(1));
+    expect(remote.remotesDir, equals('/var/lib/fwupd/remotes.d'));
+    expect(remote.reportUri, isNull);
+    expect(remote.securityReportUri, isNull);
+    expect(remote.title, equals('Linux Vendor Firmware Service (testing)'));
+    expect(remote.username, isNull);
+  });
 }
