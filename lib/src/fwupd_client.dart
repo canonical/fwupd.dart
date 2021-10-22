@@ -294,11 +294,20 @@ class FwupdClient {
         .toList();
   }
 
-  Future<List<FwupdRelease>> getUpgrades(String deviceId) async {
+  Future<List<FwupdRelease>> getUpgrades(String deviceId) {
+    return _getReleases('GetUpgrades', deviceId);
+  }
+
+  Future<List<FwupdRelease>> getDowngrades(String deviceId) {
+    return _getReleases('GetDowngrades', deviceId);
+  }
+
+  Future<List<FwupdRelease>> _getReleases(
+      String method, String deviceId) async {
     DBusMethodResponse response;
     try {
       response = await _root.callMethod(
-          'org.freedesktop.fwupd', 'GetUpgrades', [DBusString(deviceId)],
+          'org.freedesktop.fwupd', method, [DBusString(deviceId)],
           replySignature: DBusSignature('aa{sv}'));
     } on DBusMethodResponseException catch (e) {
       var errorResponse = e.response;
