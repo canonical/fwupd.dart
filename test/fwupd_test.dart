@@ -167,9 +167,15 @@ class MockFwupdObject extends DBusObject {
         ]);
 
       case 'GetReleases':
+        var deviceId = (methodCall.values[0] as DBusString).value;
+        var releases = server.releases[deviceId];
+        if (releases == null) {
+          return DBusMethodErrorResponse('org.freedesktop.fwupd.Internal',
+              [DBusString('invalid device id')]);
+        }
         return DBusMethodSuccessResponse([
           DBusArray(DBusSignature('a{sv}'),
-              server.releases.map((e) => DBusDict.stringVariant(e)))
+              releases.map((e) => DBusDict.stringVariant(e)))
         ]);
 
       case 'GetRemotes':
@@ -221,7 +227,7 @@ class MockFwupdServer extends DBusClient {
   final bool interactive;
   final int percentage;
   final List<Map<String, DBusValue>> plugins;
-  final List<Map<String, DBusValue>> releases;
+  final Map<String, List<Map<String, DBusValue>>> releases;
   final List<Map<String, DBusValue>> remotes;
   final int status;
   final bool tainted;
@@ -240,7 +246,7 @@ class MockFwupdServer extends DBusClient {
       this.interactive = false,
       this.percentage = 0,
       this.plugins = const [],
-      this.releases = const [],
+      this.releases = const {},
       this.remotes = const [],
       this.status = 0,
       this.tainted = false,
@@ -452,13 +458,13 @@ void main() {
     expect(plugin.name, equals('plugin2'));
   });
 
-  test('get upgrades', () async {
+  test('get releases', () async {
     var server = DBusServer();
     addTearDown(() async => await server.close());
     var clientAddress =
         await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
 
-    var fwupd = MockFwupdServer(clientAddress, upgrades: {
+    var allUpgrades = {
       'id1': [
         {
           'Description': DBusString('DESCRIPTION1'),
@@ -491,63 +497,9 @@ void main() {
           'Version': DBusString('3.4')
         }
       ]
-    });
-    addTearDown(() async => await fwupd.close());
-    await fwupd.start();
+    };
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
-    addTearDown(() async => await client.close());
-    await client.connect();
-
-    var upgrades = await client.getUpgrades('id1');
-    expect(upgrades, hasLength(2));
-
-    var upgrade = upgrades[0];
-    expect(upgrade.appstreamId, isNull);
-    expect(upgrade.checksum, isNull);
-    expect(upgrade.created, isNull);
-    expect(upgrade.description, equals('DESCRIPTION1'));
-    expect(upgrade.filename, isNull);
-    expect(upgrade.homepage, equals('http://example.com/1'));
-    expect(upgrade.installDuration, equals(0));
-    expect(upgrade.license, equals('GPL-3.0'));
-    expect(upgrade.locations, isEmpty);
-    expect(upgrade.name, equals('NAME1'));
-    expect(upgrade.protocol, isNull);
-    expect(upgrade.size, equals(123456));
-    expect(upgrade.summary, equals('SUMMARY1'));
-    expect(upgrade.flags, isEmpty);
-    expect(upgrade.urgency, equals(FwupdReleaseUrgency.unknown));
-    expect(upgrade.vendor, equals('VENDOR'));
-    expect(upgrade.version, equals('1.2'));
-
-    upgrade = upgrades[1];
-    expect(upgrade.appstreamId, equals('com.example.Test'));
-    expect(upgrade.checksum, equals('CHECKSUM'));
-    expect(upgrade.created, equals(DateTime.utc(2020, 3, 27)));
-    expect(upgrade.description, equals('DESCRIPTION2'));
-    expect(upgrade.filename, equals('test.cab'));
-    expect(upgrade.homepage, equals('http://example.com/2'));
-    expect(upgrade.installDuration, equals(3600));
-    expect(upgrade.license, equals('GPL-3.0'));
-    expect(upgrade.locations, equals(['https://example.com/test.cab']));
-    expect(upgrade.name, equals('NAME2'));
-    expect(upgrade.protocol, equals('PROTOCOL'));
-    expect(upgrade.size, equals(654321));
-    expect(upgrade.summary, equals('SUMMARY2'));
-    expect(upgrade.flags, equals({FwupdReleaseFlag.isUpgrade}));
-    expect(upgrade.urgency, equals(FwupdReleaseUrgency.high));
-    expect(upgrade.vendor, equals('VENDOR'));
-    expect(upgrade.version, equals('3.4'));
-  });
-
-  test('get downgrades', () async {
-    var server = DBusServer();
-    addTearDown(() async => await server.close());
-    var clientAddress =
-        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
-
-    var fwupd = MockFwupdServer(clientAddress, downgrades: {
+    var allDowngrades = {
       'id1': [
         {
           'Description': DBusString('DESCRIPTION1'),
@@ -573,14 +525,36 @@ void main() {
           'Protocol': DBusString('PROTOCOL'),
           'Size': DBusUint64(654321),
           'Summary': DBusString('SUMMARY2'),
-          'TrustFlags': DBusUint64(4),
+          'TrustFlags': DBusUint64(8),
           'Urgency': DBusUint32(3),
           'Uri': DBusString('https://example.com/test.cab'),
           'Vendor': DBusString('VENDOR'),
           'Version': DBusString('3.2')
         }
       ]
-    });
+    };
+
+    var allReleases = {
+      'id1': [
+        ...allUpgrades['id1']!,
+        {
+          'Description': DBusString('CURRENT DESCRIPTION'),
+          'Homepage': DBusString('http://example.com/current'),
+          'License': DBusString('GPL-3.0'),
+          'Name': DBusString('CURRENT NAME'),
+          'Size': DBusUint64(789),
+          'Summary': DBusString('CURRENT SUMMARY'),
+          'Vendor': DBusString('VENDOR'),
+          'Version': DBusString('2.0')
+        },
+        ...allDowngrades['id1']!,
+      ],
+    };
+
+    var fwupd = MockFwupdServer(clientAddress,
+        upgrades: allUpgrades,
+        downgrades: allDowngrades,
+        releases: allReleases);
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
@@ -588,10 +562,57 @@ void main() {
     addTearDown(() async => await client.close());
     await client.connect();
 
+    var releases = await client.getReleases('id1');
+    expect(releases, hasLength(5));
+
+    var upgrades = await client.getUpgrades('id1');
+    expect(upgrades, hasLength(2));
+
+    var upgrade = upgrades[0];
+    expect(releases[0], equals(upgrade));
+    expect(upgrade.appstreamId, isNull);
+    expect(upgrade.checksum, isNull);
+    expect(upgrade.created, isNull);
+    expect(upgrade.description, equals('DESCRIPTION1'));
+    expect(upgrade.filename, isNull);
+    expect(upgrade.homepage, equals('http://example.com/1'));
+    expect(upgrade.installDuration, equals(0));
+    expect(upgrade.license, equals('GPL-3.0'));
+    expect(upgrade.locations, isEmpty);
+    expect(upgrade.name, equals('NAME1'));
+    expect(upgrade.protocol, isNull);
+    expect(upgrade.size, equals(123456));
+    expect(upgrade.summary, equals('SUMMARY1'));
+    expect(upgrade.flags, isEmpty);
+    expect(upgrade.urgency, equals(FwupdReleaseUrgency.unknown));
+    expect(upgrade.vendor, equals('VENDOR'));
+    expect(upgrade.version, equals('1.2'));
+
+    upgrade = upgrades[1];
+    expect(releases[1], equals(upgrade));
+    expect(upgrade.appstreamId, equals('com.example.Test'));
+    expect(upgrade.checksum, equals('CHECKSUM'));
+    expect(upgrade.created, equals(DateTime.utc(2020, 3, 27)));
+    expect(upgrade.description, equals('DESCRIPTION2'));
+    expect(upgrade.filename, equals('test.cab'));
+    expect(upgrade.homepage, equals('http://example.com/2'));
+    expect(upgrade.installDuration, equals(3600));
+    expect(upgrade.license, equals('GPL-3.0'));
+    expect(upgrade.locations, equals(['https://example.com/test.cab']));
+    expect(upgrade.name, equals('NAME2'));
+    expect(upgrade.protocol, equals('PROTOCOL'));
+    expect(upgrade.size, equals(654321));
+    expect(upgrade.summary, equals('SUMMARY2'));
+    expect(upgrade.flags, equals({FwupdReleaseFlag.isUpgrade}));
+    expect(upgrade.urgency, equals(FwupdReleaseUrgency.high));
+    expect(upgrade.vendor, equals('VENDOR'));
+    expect(upgrade.version, equals('3.4'));
+
     var downgrades = await client.getDowngrades('id1');
     expect(downgrades, hasLength(2));
 
     var downgrade = downgrades[0];
+    expect(releases[3], equals(downgrade));
     expect(downgrade.appstreamId, isNull);
     expect(downgrade.checksum, isNull);
     expect(downgrade.created, isNull);
@@ -611,6 +632,7 @@ void main() {
     expect(downgrade.version, equals('1.0'));
 
     downgrade = downgrades[1];
+    expect(releases[4], equals(downgrade));
     expect(downgrade.appstreamId, equals('com.example.Test'));
     expect(downgrade.checksum, equals('CHECKSUM'));
     expect(downgrade.created, equals(DateTime.utc(2020, 3, 27)));
@@ -624,10 +646,20 @@ void main() {
     expect(downgrade.protocol, equals('PROTOCOL'));
     expect(downgrade.size, equals(654321));
     expect(downgrade.summary, equals('SUMMARY2'));
-    expect(downgrade.flags, equals({FwupdReleaseFlag.isUpgrade}));
+    expect(downgrade.flags, equals({FwupdReleaseFlag.isDowngrade}));
     expect(downgrade.urgency, equals(FwupdReleaseUrgency.high));
     expect(downgrade.vendor, equals('VENDOR'));
     expect(downgrade.version, equals('3.2'));
+
+    var current = releases[2];
+    expect(current.description, equals('CURRENT DESCRIPTION'));
+    expect(current.homepage, equals('http://example.com/current'));
+    expect(current.license, equals('GPL-3.0'));
+    expect(current.name, equals('CURRENT NAME'));
+    expect(current.size, equals(789));
+    expect(current.summary, equals('CURRENT SUMMARY'));
+    expect(current.vendor, equals('VENDOR'));
+    expect(current.version, equals('2.0'));
   });
 
   test('activate device', () async {
