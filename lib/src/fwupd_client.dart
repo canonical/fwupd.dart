@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:dbus/dbus.dart';
+import 'package:meta/meta.dart';
 
 enum FwupdStatus {
   unknown,
@@ -102,6 +104,7 @@ class FwupdNotSupportedException extends FwupdException {}
 
 class FwupdNothingToDoException extends FwupdException {}
 
+@immutable
 class FwupdDevice {
   final String? checksum;
   final DateTime? created;
@@ -137,6 +140,45 @@ class FwupdDevice {
   @override
   String toString() =>
       "FwupdDevice(checksum: $checksum, created: $created, deviceId: $deviceId, flags: $flags, guid: $guid, icon: $icon, name: '$name', parentDeviceId: $parentDeviceId, plugin: $plugin, summary: $summary, vendor: $vendor, vendorId: $vendorId, version: $version, versionFormat: $versionFormat)";
+
+  @override
+  int get hashCode => Object.hashAll([
+        checksum,
+        created,
+        deviceId,
+        Object.hashAll(flags),
+        Object.hashAll(guid),
+        Object.hashAll(icon),
+        name,
+        parentDeviceId,
+        plugin,
+        summary,
+        vendor,
+        vendorId,
+        version,
+        versionFormat
+      ]);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+    return other is FwupdDevice &&
+        other.checksum == checksum &&
+        other.created == created &&
+        other.deviceId == deviceId &&
+        const SetEquality<FwupdDeviceFlag>().equals(other.flags, flags) &&
+        const ListEquality<String>().equals(other.guid, guid) &&
+        const ListEquality<String>().equals(other.icon, icon) &&
+        other.name == name &&
+        other.parentDeviceId == parentDeviceId &&
+        other.plugin == plugin &&
+        other.summary == summary &&
+        other.vendor == vendor &&
+        other.vendorId == vendorId &&
+        other.version == version &&
+        other.versionFormat == versionFormat;
+  }
 }
 
 class FwupdPlugin {
@@ -150,6 +192,7 @@ class FwupdPlugin {
   String toString() => 'FwupdDevice(name: $name)';
 }
 
+@immutable
 class FwupdRelease {
   final String? appstreamId;
   final String? checksum;
@@ -195,6 +238,56 @@ class FwupdRelease {
   @override
   String toString() =>
       "FwupdRelease(appstreamId: $appstreamId, checksum: $checksum, created: $created, description: '$description', filename: $filename, homepage: $homepage, license: $license, locations: $locations, name: '$name', protocol: $protocol, remoteId: $remoteId, size: $size, flags: $flags, urgency: $urgency, uri: $uri, vendor: '$vendor', version: '$version')";
+
+  @override
+  int get hashCode => Object.hashAll([
+        appstreamId,
+        checksum,
+        created,
+        description,
+        filename,
+        homepage,
+        installDuration,
+        license,
+        Object.hashAll(locations),
+        name,
+        protocol,
+        remoteId,
+        size,
+        summary,
+        Object.hashAll(flags),
+        urgency,
+        uri,
+        vendor,
+        version
+      ]);
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    if (other.runtimeType != runtimeType) return false;
+    return other is FwupdRelease &&
+        runtimeType == other.runtimeType &&
+        appstreamId == other.appstreamId &&
+        checksum == other.checksum &&
+        created == other.created &&
+        description == other.description &&
+        filename == other.filename &&
+        homepage == other.homepage &&
+        installDuration == other.installDuration &&
+        license == other.license &&
+        const ListEquality<String>().equals(locations, other.locations) &&
+        name == other.name &&
+        protocol == other.protocol &&
+        remoteId == other.remoteId &&
+        size == other.size &&
+        summary == other.summary &&
+        const SetEquality<FwupdReleaseFlag>().equals(flags, other.flags) &&
+        urgency == other.urgency &&
+        uri == other.uri &&
+        vendor == other.vendor &&
+        version == other.version;
+  }
 }
 
 enum FwupdRemoteKind { unknown, download, local, directory }
