@@ -836,4 +836,70 @@ void main() {
     expect(remote.title, equals('Linux Vendor Firmware Service (testing)'));
     expect(remote.username, isNull);
   });
+
+  test('data classes', () async {
+    final release1 = FwupdRelease(
+      description: 'DESCRIPTION1',
+      homepage: 'http://example.com/1',
+      license: 'GPL-3.0',
+      name: 'NAME1',
+      size: 123456,
+      summary: 'SUMMARY1',
+      vendor: 'VENDOR',
+      version: '1.2',
+    );
+
+    final release2 = FwupdRelease(
+      appstreamId: 'com.example.Test',
+      checksum: 'CHECKSUM',
+      created: DateTime.fromMillisecondsSinceEpoch(1585267200 * 1000),
+      description: 'DESCRIPTION2',
+      filename: 'test.cab',
+      homepage: 'http://example.com/2',
+      installDuration: 3600,
+      license: 'GPL-3.0',
+      locations: ['https://example.com/test.cab'],
+      name: 'NAME2',
+      protocol: 'PROTOCOL',
+      size: 654321,
+      summary: 'SUMMARY2',
+      flags: {FwupdReleaseFlag.isUpgrade},
+      urgency: FwupdReleaseUrgency.high,
+      uri: 'https://example.com/test.cab',
+      vendor: 'VENDOR',
+      version: '3.4',
+    );
+
+    expect(release1, equals(release1));
+    expect(release2, equals(release2));
+    expect(release1, isNot(equals(release2)));
+
+    final device1 = FwupdDevice(
+      deviceId: 'parentId',
+      guid: ['guid1a', 'guid1b'],
+      name: 'Device 1',
+      plugin: 'plugin1',
+    );
+
+    final device2 = FwupdDevice(
+      checksum: 'CHECKSUM',
+      created: DateTime.fromMillisecondsSinceEpoch(1628138280 * 1000),
+      deviceId: 'childId',
+      flags: {FwupdDeviceFlag.updatable, FwupdDeviceFlag.requireAc},
+      guid: ['guid2'],
+      icon: ['computer'],
+      name: 'Child Device',
+      parentDeviceId: 'parentId',
+      plugin: 'plugin2',
+      summary: 'A child plugin',
+      vendor: 'VENDOR',
+      vendorId: 'VENDOR-ID',
+      version: '42',
+      versionFormat: FwupdVersionFormat.number,
+    );
+
+    expect(device1, equals(device1));
+    expect(device2, equals(device2));
+    expect(device1, isNot(equals(device2)));
+  });
 }
