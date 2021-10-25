@@ -443,25 +443,14 @@ class FwupdClient {
         .toList();
   }
 
-  /// Gets the remotes configured in fwupd.
-  Future<List<FwupdRemote>> getRemotes() async {
-    var response = await _root.callMethod(
-        'org.freedesktop.fwupd', 'GetRemotes', [],
-        replySignature: DBusSignature('aa{sv}'));
-    return (response.returnValues[0] as DBusArray)
-        .children
-        .map((child) => (child as DBusDict).children.map((key, value) =>
-            MapEntry((key as DBusString).value, (value as DBusVariant).value)))
-        .map((properties) => _parseRemote(properties))
-        .toList();
+  // FIXME: 'GetReleases'
+
+  Future<List<FwupdRelease>> getDowngrades(String deviceId) {
+    return _getReleases('GetDowngrades', deviceId);
   }
 
   Future<List<FwupdRelease>> getUpgrades(String deviceId) {
     return _getReleases('GetUpgrades', deviceId);
-  }
-
-  Future<List<FwupdRelease>> getDowngrades(String deviceId) {
-    return _getReleases('GetDowngrades', deviceId);
   }
 
   Future<List<FwupdRelease>> _getReleases(
@@ -490,15 +479,26 @@ class FwupdClient {
         .toList();
   }
 
-  Future<void> activate(String id) async {
-    await _root.callMethod(
-        'org.freedesktop.fwupd', 'Activate', [DBusString(id)],
+  // FIXME: 'GetDetails'
+
+  // FIXME: 'GetHistory'
+
+  // FIXME: 'GetHostSecurityAttrs'
+
+  // FIXME: 'GetReportMetadata'
+
+  // FIXME: 'Install'
+
+  /// Verify firmware on a device.
+  Future<void> verify(String id) async {
+    await _root.callMethod('org.freedesktop.fwupd', 'Verify', [DBusString(id)],
         replySignature: DBusSignature(''));
   }
 
-  Future<void> clearResults(String id) async {
+  /// Update the cryptographic hash stored for a device.
+  Future<void> verifyUpdate(String id) async {
     await _root.callMethod(
-        'org.freedesktop.fwupd', 'ClearResults', [DBusString(id)],
+        'org.freedesktop.fwupd', 'VerifyUpdate', [DBusString(id)],
         replySignature: DBusSignature(''));
   }
 
@@ -508,17 +508,54 @@ class FwupdClient {
         replySignature: DBusSignature(''));
   }
 
-  /// Verify firmware on a device.
-  Future<void> verify(String id) async {
-    await _root.callMethod('org.freedesktop.fwupd', 'Verify', [DBusString(id)],
+  /// Activate a firmware update on a device.
+  Future<void> activate(String id) async {
+    await _root.callMethod(
+        'org.freedesktop.fwupd', 'Activate', [DBusString(id)],
         replySignature: DBusSignature(''));
   }
 
-  Future<void> verifyUpdate(String id) async {
+  // FIXME: 'GetResults'
+
+  /// Gets the remotes configured in fwupd.
+  Future<List<FwupdRemote>> getRemotes() async {
+    var response = await _root.callMethod(
+        'org.freedesktop.fwupd', 'GetRemotes', [],
+        replySignature: DBusSignature('aa{sv}'));
+    return (response.returnValues[0] as DBusArray)
+        .children
+        .map((child) => (child as DBusDict).children.map((key, value) =>
+            MapEntry((key as DBusString).value, (value as DBusVariant).value)))
+        .map((properties) => _parseRemote(properties))
+        .toList();
+  }
+
+  // FIXME: 'GetApprovedFirmware'
+
+  // FIXME: 'SetApprovedFirmware'
+
+  // FIXME: 'GetBlockedFirmware'
+
+  // FIXME: 'SetBlockedFirmware'
+
+  // FIXME: 'SetFeatureFlags'
+
+  /// Clear the results of an offline update.
+  Future<void> clearResults(String id) async {
     await _root.callMethod(
-        'org.freedesktop.fwupd', 'VerifyUpdate', [DBusString(id)],
+        'org.freedesktop.fwupd', 'ClearResults', [DBusString(id)],
         replySignature: DBusSignature(''));
   }
+
+  // FIXME: 'ModifyDevice'
+
+  // FIXME: 'ModifyConfig'
+
+  // FIXME: 'UpdateMetadata'
+
+  // FIXME: 'ModifyRemote'
+
+  // FIXME: 'SelfSign'
 
   /// Terminates the connection to the fwupd daemon. If a client remains unclosed, the Dart process may not terminate.
   Future<void> close() async {
