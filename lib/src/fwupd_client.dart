@@ -443,7 +443,9 @@ class FwupdClient {
         .toList();
   }
 
-  // FIXME: 'GetReleases'
+  Future<List<FwupdRelease>> getReleases(String deviceId) {
+    return _getReleases('GetReleases', deviceId);
+  }
 
   Future<List<FwupdRelease>> getDowngrades(String deviceId) {
     return _getReleases('GetDowngrades', deviceId);
