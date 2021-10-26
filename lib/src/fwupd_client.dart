@@ -409,6 +409,11 @@ class FwupdClient {
 
   /// Connects to the fwupd daemon.
   Future<void> connect() async {
+    // Already connected
+    if (_propertiesChangedSubscription != null) {
+      return;
+    }
+
     _propertiesChangedSubscription = _root.propertiesChanged.listen((signal) {
       if (signal.propertiesInterface == 'org.freedesktop.fwupd') {
         _updateProperties(signal.changedProperties);
