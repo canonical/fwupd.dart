@@ -390,6 +390,15 @@ class FwupdClient {
   final _propertiesChangedController =
       StreamController<List<String>>.broadcast();
 
+  /// Devices.
+  var _devices = <String, FwupdDevice>{};
+  StreamSubscription? _deviceAddedSubscription;
+  final _deviceAddedController = StreamController<FwupdDevice>.broadcast();
+  StreamSubscription? _deviceChangedSubscription;
+  final _deviceChangedController = StreamController<FwupdDevice>.broadcast();
+  StreamSubscription? _deviceRemovedSubscription;
+  final _deviceRemovedController = StreamController<FwupdDevice>.broadcast();
+
   /// The version of the fwupd daemon.
   String get daemonVersion =>
       (_properties['DaemonVersion'] as DBusString?)?.value ?? '';
@@ -424,6 +433,15 @@ class FwupdClient {
   /// The percentage of the current job in process.
   int get percentage => (_properties['Percentage'] as DBusUint32?)?.value ?? 0;
 
+  /// Stream of devices as they are added.
+  Stream<FwupdDevice> get deviceAdded => _deviceAddedController.stream;
+
+  /// Stream of devices as they are changed.
+  Stream<FwupdDevice> get deviceChanged => _deviceChangedController.stream;
+
+  /// Stream of devices as they are removed.
+  Stream<FwupdDevice> get deviceRemoved => _deviceRemovedController.stream;
+
   /// Stream of property names as they change.
   Stream<List<String>> get propertiesChanged =>
       _propertiesChangedController.stream;
@@ -444,6 +462,30 @@ class FwupdClient {
       }
     });
     _updateProperties(await _root.getAllProperties('org.freedesktop.fwupd'));
+
+    var deviceAdded = DBusRemoteObjectSignalStream(
+        object: _root, interface: 'org.freedesktop.fwupd', name: 'DeviceAdded');
+    _deviceAddedSubscription = deviceAdded.listen((signal) => _deviceAdded(
+        (signal.values[0] as DBusDict).children.map((key, value) => MapEntry(
+            (key as DBusString).value, (value as DBusVariant).value))));
+
+    var deviceChanged = DBusRemoteObjectSignalStream(
+        object: _root,
+        interface: 'org.freedesktop.fwupd',
+        name: 'DeviceChanged');
+    _deviceChangedSubscription = deviceChanged.listen((signal) =>
+        _deviceChanged((signal.values[0] as DBusDict).children.map(
+            (key, value) => MapEntry(
+                (key as DBusString).value, (value as DBusVariant).value))));
+
+    var deviceRemoved = DBusRemoteObjectSignalStream(
+        object: _root,
+        interface: 'org.freedesktop.fwupd',
+        name: 'DeviceRemoved');
+    _deviceRemovedSubscription = deviceRemoved.listen((signal) =>
+        _deviceRemoved((signal.values[0] as DBusDict).children.map(
+            (key, value) => MapEntry(
+                (key as DBusString).value, (value as DBusVariant).value))));
   }
 
   /// Gets the devices being managed by fwupd.
@@ -451,12 +493,14 @@ class FwupdClient {
     var response = await _root.callMethod(
         'org.freedesktop.fwupd', 'GetDevices', [],
         replySignature: DBusSignature('aa{sv}'));
-    return (response.returnValues[0] as DBusArray)
+    var devices = (response.returnValues[0] as DBusArray)
         .children
         .map((child) => (child as DBusDict).children.map((key, value) =>
             MapEntry((key as DBusString).value, (value as DBusVariant).value)))
         .map((properties) => _parseDevice(properties))
         .toList();
+    _devices = {for (var device in devices) device.deviceId: device};
+    return _devices.values.toList();
   }
 
   /// Gets the plugins supported by fwupd.
@@ -594,6 +638,19 @@ class FwupdClient {
       await _propertiesChangedSubscription!.cancel();
       _propertiesChangedSubscription = null;
     }
+    if (_deviceAddedSubscription != null) {
+      await _deviceAddedSubscription!.cancel();
+      _deviceAddedSubscription = null;
+    }
+    if (_deviceChangedSubscription != null) {
+      await _deviceChangedSubscription!.cancel();
+      _deviceChangedSubscription = null;
+    }
+    if (_deviceRemovedSubscription != null) {
+      await _deviceRemovedSubscription!.cancel();
+      _deviceRemovedSubscription = null;
+    }
+    _devices.clear();
     if (_closeBus) {
       await _bus.close();
     }
@@ -602,6 +659,27 @@ class FwupdClient {
   void _updateProperties(Map<String, DBusValue> properties) {
     _properties.addAll(properties);
     _propertiesChangedController.add(properties.keys.toList());
+  }
+
+  Future<void> _deviceAdded(Map<String, DBusValue> properties) async {
+    var device = _parseDevice(properties);
+    _devices[device.deviceId] = device;
+    _deviceAddedController.add(device);
+  }
+
+  Future<void> _deviceChanged(Map<String, DBusValue> properties) async {
+    final device = _parseDevice(properties);
+    if (device == _devices[device.deviceId]) {
+      return;
+    }
+    _devices[device.deviceId] = device;
+    _deviceChangedController.add(device);
+  }
+
+  Future<void> _deviceRemoved(Map<String, DBusValue> properties) async {
+    var device = _parseDevice(properties);
+    _devices.remove(device.deviceId);
+    _deviceRemovedController.add(device);
   }
 
   FwupdDevice _parseDevice(Map<String, DBusValue> properties) {
