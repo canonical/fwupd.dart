@@ -268,6 +268,21 @@ class MockFwupdServer extends DBusClient {
     }
     return null;
   }
+
+  Future<void> addDevice(Map<String, DBusValue> device) {
+    return _root.emitSignal('org.freedesktop.fwupd', 'DeviceAdded',
+        [DBusDict.stringVariant(device)]);
+  }
+
+  Future<void> changeDevice(Map<String, DBusValue> device) {
+    return _root.emitSignal('org.freedesktop.fwupd', 'DeviceChanged',
+        [DBusDict.stringVariant(device)]);
+  }
+
+  Future<void> removeDevice(Map<String, DBusValue> device) {
+    return _root.emitSignal('org.freedesktop.fwupd', 'DeviceRemoved',
+        [DBusDict.stringVariant(device)]);
+  }
 }
 
 void main() {
@@ -360,6 +375,43 @@ void main() {
 
     expect(client.status, equals(FwupdStatus.decompressing));
     expect(client.percentage, equals(42));
+  });
+
+  test('device signals', () async {
+    var server = DBusServer();
+    addTearDown(() async => await server.close());
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var fwupd = MockFwupdServer(clientAddress);
+    addTearDown(() async => await fwupd.close());
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
+    await client.connect();
+
+    client.deviceAdded.listen(expectAsync1((device) {
+      expect(device.deviceId, equals('ID'));
+      expect(device.version, equals('1.0'));
+    }));
+    client.deviceChanged.listen(expectAsync1((device) {
+      expect(device.deviceId, equals('ID'));
+      expect(device.version, equals('1.1'));
+    }));
+    client.deviceRemoved.listen(expectAsync1((device) {
+      expect(device.deviceId, equals('ID'));
+      expect(device.version, equals('1.1'));
+    }));
+
+    await fwupd.addDevice(
+        {'DeviceId': DBusString('ID'), 'Version': DBusString('1.0')});
+    await fwupd.changeDevice(
+        {'DeviceId': DBusString('ID'), 'Version': DBusString('1.0')}); // ignore
+    await fwupd.changeDevice(
+        {'DeviceId': DBusString('ID'), 'Version': DBusString('1.1')});
+    await fwupd.removeDevice(
+        {'DeviceId': DBusString('ID'), 'Version': DBusString('1.1')});
   });
 
   test('get devices', () async {
