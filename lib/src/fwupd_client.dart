@@ -98,6 +98,15 @@ enum FwupdReleaseFlag {
 
 enum FwupdReleaseUrgency { unknown, low, medium, high, critical }
 
+enum FwupdUpdateState {
+  unknown,
+  pending,
+  success,
+  failed,
+  reboot,
+  failedTransient,
+}
+
 class FwupdException implements Exception {}
 
 class FwupdNotSupportedException extends FwupdException {}
@@ -112,14 +121,19 @@ class FwupdDevice {
   final Set<FwupdDeviceFlag> flags;
   final List<String> guid;
   final List<String> icon;
+  final DateTime? modified;
   final String name;
   final String? parentDeviceId;
   final String plugin;
+  final String? protocol;
   final String? summary;
+  final FwupdUpdateState updateState;
   final String? vendor;
   final String? vendorId;
   final String? version;
+  final String? versionBootloader;
   final FwupdVersionFormat versionFormat;
+  final String? versionLowest;
 
   FwupdDevice(
       {this.checksum,
@@ -128,18 +142,23 @@ class FwupdDevice {
       this.flags = const {},
       this.guid = const [],
       this.icon = const [],
+      this.modified,
       required this.name,
       this.parentDeviceId,
       required this.plugin,
+      this.protocol,
       this.summary,
+      this.updateState = FwupdUpdateState.unknown,
       this.vendor,
       this.vendorId,
       this.version,
-      this.versionFormat = FwupdVersionFormat.unknown});
+      this.versionBootloader,
+      this.versionFormat = FwupdVersionFormat.unknown,
+      this.versionLowest});
 
   @override
   String toString() =>
-      "FwupdDevice(checksum: $checksum, created: $created, deviceId: $deviceId, flags: $flags, guid: $guid, icon: $icon, name: '$name', parentDeviceId: $parentDeviceId, plugin: $plugin, summary: $summary, vendor: $vendor, vendorId: $vendorId, version: $version, versionFormat: $versionFormat)";
+      "FwupdDevice(checksum: $checksum, created: $created, deviceId: $deviceId, flags: $flags, guid: $guid, icon: $icon, modified: $modified, name: '$name', parentDeviceId: $parentDeviceId, plugin: $plugin, protocol: $protocol, summary: $summary, updateState: $updateState, vendor: $vendor, vendorId: $vendorId, version: $version, versionBootloader: $versionBootloader, versionFormat: $versionFormat, versionLowest: $versionLowest)";
 
   @override
   int get hashCode => Object.hashAll([
@@ -149,14 +168,19 @@ class FwupdDevice {
         Object.hashAll(flags),
         Object.hashAll(guid),
         Object.hashAll(icon),
+        modified,
         name,
         parentDeviceId,
         plugin,
+        protocol,
         summary,
+        updateState,
         vendor,
         vendorId,
         version,
-        versionFormat
+        versionBootloader,
+        versionFormat,
+        versionLowest
       ]);
 
   @override
@@ -170,14 +194,19 @@ class FwupdDevice {
         const SetEquality<FwupdDeviceFlag>().equals(other.flags, flags) &&
         const ListEquality<String>().equals(other.guid, guid) &&
         const ListEquality<String>().equals(other.icon, icon) &&
+        other.modified == modified &&
         other.name == name &&
         other.parentDeviceId == parentDeviceId &&
         other.plugin == plugin &&
+        other.protocol == protocol &&
         other.summary == summary &&
+        other.updateState == updateState &&
         other.vendor == vendor &&
         other.vendorId == vendorId &&
         other.version == version &&
-        other.versionFormat == versionFormat;
+        other.versionBootloader == versionBootloader &&
+        other.versionFormat == versionFormat &&
+        other.versionLowest == versionLowest;
   }
 }
 
@@ -583,6 +612,11 @@ class FwupdClient {
         flags.add(FwupdDeviceFlag.values[i]);
       }
     }
+    var updateStateValue =
+        (properties['UpdateState'] as DBusUint32?)?.value ?? 0;
+    var updateState = updateStateValue < FwupdUpdateState.values.length
+        ? FwupdUpdateState.values[updateStateValue]
+        : FwupdUpdateState.unknown;
     var versionFormatValue =
         (properties['VersionFormat'] as DBusUint32?)?.value ?? 0;
     var versionFormat = versionFormatValue < FwupdVersionFormat.values.length
@@ -604,13 +638,19 @@ class FwupdClient {
                 .map((value) => (value as DBusString).value)
                 .toList() ??
             [],
+        modified: _parseDateTime(properties['Modified']),
         parentDeviceId: (properties['ParentDeviceId'] as DBusString?)?.value,
         plugin: (properties['Plugin'] as DBusString?)?.value ?? '',
+        protocol: (properties['Protocol'] as DBusString?)?.value,
         summary: (properties['Summary'] as DBusString?)?.value,
+        updateState: updateState,
         vendor: (properties['Vendor'] as DBusString?)?.value,
         vendorId: (properties['VendorId'] as DBusString?)?.value,
         version: (properties['Version'] as DBusString?)?.value,
-        versionFormat: versionFormat);
+        versionBootloader:
+            (properties['VersionBootloader'] as DBusString?)?.value,
+        versionFormat: versionFormat,
+        versionLowest: (properties['VersionLowest'] as DBusString?)?.value);
   }
 
   DateTime? _parseDateTime(DBusValue? value) {

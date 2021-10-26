@@ -12,13 +12,18 @@ class MockFwupdDevice {
   final String name;
   final List<String>? guid;
   final List<String>? icon;
+  final int? modified;
   final String? parentDeviceId;
   final String? plugin;
+  final String? protocol;
   final String? summary;
+  final int? updateState;
   final String? vendor;
   final String? vendorId;
   final String? version;
+  final String? versionBootloader;
   final int? versionFormat;
+  final String? versionLowest;
 
   var activated = false;
   var resultsCleared = false;
@@ -32,15 +37,20 @@ class MockFwupdDevice {
       required this.deviceId,
       this.flags,
       this.icon = const [],
+      this.modified,
       this.name = '',
       this.guid = const [],
       this.parentDeviceId,
       this.plugin,
+      this.protocol,
       this.summary,
+      this.updateState,
       this.vendor,
       this.vendorId,
       this.version,
-      this.versionFormat});
+      this.versionBootloader,
+      this.versionFormat,
+      this.versionLowest});
 }
 
 class MockFwupdObject extends DBusObject {
@@ -128,14 +138,23 @@ class MockFwupdObject extends DBusObject {
           if (device.icon != null) {
             d['Icon'] = DBusArray.string(device.icon!);
           }
+          if (device.modified != null) {
+            d['Modified'] = DBusUint64(device.modified!);
+          }
           if (device.parentDeviceId != null) {
             d['ParentDeviceId'] = DBusString(device.parentDeviceId!);
           }
           if (device.plugin != null) {
             d['Plugin'] = DBusString(device.plugin!);
           }
+          if (device.protocol != null) {
+            d['Protocol'] = DBusString(device.protocol!);
+          }
           if (device.summary != null) {
             d['Summary'] = DBusString(device.summary!);
+          }
+          if (device.updateState != null) {
+            d['UpdateState'] = DBusUint32(device.updateState!);
           }
           if (device.vendor != null) {
             d['Vendor'] = DBusString(device.vendor!);
@@ -146,8 +165,14 @@ class MockFwupdObject extends DBusObject {
           if (device.version != null) {
             d['Version'] = DBusString(device.version!);
           }
+          if (device.versionBootloader != null) {
+            d['VersionBootloader'] = DBusString(device.versionBootloader!);
+          }
           if (device.versionFormat != null) {
             d['VersionFormat'] = DBusUint32(device.versionFormat!);
+          }
+          if (device.versionLowest != null) {
+            d['VersionLowest'] = DBusString(device.versionLowest!);
           }
           r.add(DBusDict.stringVariant(d));
         }
@@ -382,13 +407,18 @@ void main() {
           guid: ['guid2'],
           icon: ['computer'],
           name: 'Child Device',
+          modified: 1635254640,
           parentDeviceId: 'parentId',
           plugin: 'plugin2',
+          protocol: 'protocol2',
           summary: 'A child plugin',
+          updateState: 2,
           vendor: 'VENDOR',
           vendorId: 'VENDOR-ID',
           version: '42',
-          versionFormat: 2)
+          versionBootloader: '53b',
+          versionFormat: 2,
+          versionLowest: '39')
     ]);
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
@@ -405,15 +435,20 @@ void main() {
     expect(device.deviceId, equals('parentId'));
     expect(device.flags, isEmpty);
     expect(device.guid, equals(['guid1a', 'guid1b']));
+    expect(device.modified, isNull);
     expect(device.name, equals('Device 1'));
     expect(device.icon, equals([]));
     expect(device.parentDeviceId, isNull);
     expect(device.plugin, equals('plugin1'));
+    expect(device.protocol, isNull);
     expect(device.summary, isNull);
+    expect(device.updateState, equals(FwupdUpdateState.unknown));
     expect(device.vendor, isNull);
     expect(device.vendorId, isNull);
     expect(device.version, isNull);
+    expect(device.versionBootloader, isNull);
     expect(device.versionFormat, equals(FwupdVersionFormat.unknown));
+    expect(device.versionLowest, isNull);
 
     device = devices[1];
     expect(device.checksum, equals('CHECKSUM'));
@@ -422,15 +457,20 @@ void main() {
     expect(device.flags,
         equals({FwupdDeviceFlag.updatable, FwupdDeviceFlag.requireAc}));
     expect(device.guid, equals(['guid2']));
+    expect(device.modified, equals(DateTime.utc(2021, 10, 26, 13, 24)));
     expect(device.name, equals('Child Device'));
     expect(device.icon, equals(['computer']));
     expect(device.parentDeviceId, equals('parentId'));
     expect(device.plugin, equals('plugin2'));
+    expect(device.protocol, equals('protocol2'));
     expect(device.summary, equals('A child plugin'));
+    expect(device.updateState, FwupdUpdateState.success);
     expect(device.vendor, equals('VENDOR'));
     expect(device.vendorId, equals('VENDOR-ID'));
     expect(device.version, equals('42'));
+    expect(device.versionBootloader, equals('53b'));
     expect(device.versionFormat, equals(FwupdVersionFormat.number));
+    expect(device.versionLowest, equals('39'));
   });
 
   test('get plugins', () async {
