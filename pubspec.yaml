@@ -11,11 +11,10 @@ environment:
 
 dependencies:
   collection: ^1.15.0
-  dbus: ^0.6.2
+  dbus: ^0.7.0
   meta: ^1.7.0
 
 dev_dependencies:
   lints: ^1.0.1
   test: ^1.16.8
   test_cov: ^1.0.1
-

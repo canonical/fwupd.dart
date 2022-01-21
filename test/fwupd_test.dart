@@ -30,6 +30,8 @@ class MockFwupdDevice {
   var unlocked = false;
   var verified = false;
   var updateVerified = false;
+  ResourceHandle? installed;
+  var options = {};
 
   MockFwupdDevice(
       {this.checksum,
@@ -91,6 +93,13 @@ class MockFwupdObject extends DBusObject {
       case 'ClearResults':
         var id = (methodCall.values[0] as DBusString).value;
         server._findDeviceById(id)!.resultsCleared = true;
+        return DBusMethodSuccessResponse();
+
+      case 'Install':
+        var id = (methodCall.values[0] as DBusString).value;
+        var device = server._findDeviceById(id)!;
+        device.installed = (methodCall.values[1] as DBusUnixFd).handle;
+        device.options = (methodCall.values[2] as DBusDict).toNative();
         return DBusMethodSuccessResponse();
 
       case 'Unlock':
@@ -1025,5 +1034,41 @@ void main() {
     expect(device1, equals(device1));
     expect(device2, equals(device2));
     expect(device1, isNot(equals(device2)));
+  });
+
+  test('install', () async {
+    var server = DBusServer();
+    addTearDown(() async => await server.close());
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var device = MockFwupdDevice(deviceId: '1234', name: 'Device 1');
+    var fwupd = MockFwupdServer(clientAddress, devices: [device]);
+    addTearDown(() async => await fwupd.close());
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
+    await client.connect();
+
+    var handle = ResourceHandle.fromStdin(stdin);
+    await client.install('1234', handle, flags: {
+      FwupdInstallFlag.offline,
+      FwupdInstallFlag.allowOlder,
+      FwupdInstallFlag.force,
+      FwupdInstallFlag.ignorePower,
+    });
+    expect(device.installed, isNotNull);
+    expect(
+        device.options,
+        equals({
+          'offline': true,
+          'allow-reinstall': false,
+          'allow-older': true,
+          'force': true,
+          'no-history': false,
+          'allow-branch-switch': false,
+          'ignore-power': true,
+        }));
   });
 }
