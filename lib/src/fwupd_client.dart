@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:collection/collection.dart';
 import 'package:dbus/dbus.dart';
@@ -105,6 +106,16 @@ enum FwupdUpdateState {
   failed,
   reboot,
   failedTransient,
+}
+
+enum FwupdInstallFlag {
+  offline,
+  allowReinstall,
+  allowOlder,
+  force,
+  noHistory,
+  allowBranchSwitch,
+  ignorePower,
 }
 
 class FwupdException implements Exception {}
@@ -567,7 +578,27 @@ class FwupdClient {
 
   // FIXME: 'GetReportMetadata'
 
-  // FIXME: 'Install'
+  /// Schedule a firmware to be installed.
+  Future<void> install(
+    String id,
+    ResourceHandle handle, {
+    Set<FwupdInstallFlag> flags = const {},
+  }) async {
+    var options = DBusDict.stringVariant({
+      'offline': DBusBoolean(flags.contains(FwupdInstallFlag.offline)),
+      'allow-reinstall':
+          DBusBoolean(flags.contains(FwupdInstallFlag.allowReinstall)),
+      'allow-older': DBusBoolean(flags.contains(FwupdInstallFlag.allowOlder)),
+      'force': DBusBoolean(flags.contains(FwupdInstallFlag.force)),
+      'no-history': DBusBoolean(flags.contains(FwupdInstallFlag.noHistory)),
+      'allow-branch-switch':
+          DBusBoolean(flags.contains(FwupdInstallFlag.allowBranchSwitch)),
+      'ignore-power': DBusBoolean(flags.contains(FwupdInstallFlag.ignorePower)),
+    });
+    await _root.callMethod('org.freedesktop.fwupd', 'Install',
+        [DBusString(id), DBusUnixFd(handle), options],
+        replySignature: DBusSignature(''));
+  }
 
   /// Verify firmware on a device.
   Future<void> verify(String id) async {
