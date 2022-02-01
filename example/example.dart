@@ -7,7 +7,7 @@ void main() async {
   print('Devices:');
   var devices = await client.getDevices();
   for (var device in devices) {
-    print('${device.name}');
+    print(device.name);
     try {
       var upgrades = await client.getUpgrades(device.deviceId);
       if (upgrades.isNotEmpty) {
