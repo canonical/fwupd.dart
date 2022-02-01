@@ -321,7 +321,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -341,7 +343,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -360,7 +364,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -377,7 +383,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -394,7 +402,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -412,7 +422,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -475,7 +487,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -538,7 +552,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -650,7 +666,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -765,7 +783,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -785,7 +805,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -805,7 +827,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -825,7 +849,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -845,7 +871,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
@@ -900,7 +928,9 @@ void main() {
     addTearDown(() async => await fwupd.close());
     await fwupd.start();
 
-    var client = FwupdClient(bus: DBusClient(clientAddress));
+    var busClient = DBusClient(clientAddress);
+    addTearDown(() async => await busClient.close());
+    var client = FwupdClient(bus: busClient);
     addTearDown(() async => await client.close());
     await client.connect();
 
