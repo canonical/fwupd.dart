@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1
+
+* Only list as supporting Linux.
+
 ## 0.2.0
 
 * Add FwUpdClient.install().
