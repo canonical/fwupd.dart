@@ -84,6 +84,11 @@ class MockFwupdObject extends DBusObject {
       return DBusMethodErrorResponse.unknownInterface();
     }
 
+    if (server.errors.isNotEmpty) {
+      return DBusMethodErrorResponse(
+          server.errors.removeAt(0), [DBusString('test error')]);
+    }
+
     switch (methodCall.name) {
       case 'Activate':
         var id = (methodCall.values[0] as DBusString).value;
@@ -267,6 +272,7 @@ class MockFwupdServer extends DBusClient {
   final bool tainted;
   final Map<String, List<Map<String, DBusValue>>> upgrades;
   final Map<String, List<Map<String, DBusValue>>> downgrades;
+  final List<String> errors;
 
   MockFwupdServer(DBusAddress clientAddress,
       {this.approvedFirmware = const [],
@@ -285,7 +291,8 @@ class MockFwupdServer extends DBusClient {
       this.status = 0,
       this.tainted = false,
       this.upgrades = const {},
-      this.downgrades = const {}})
+      this.downgrades = const {},
+      this.errors = const []})
       : super(clientAddress);
 
   Future<void> start() async {
@@ -1070,5 +1077,47 @@ void main() {
           'allow-branch-switch': false,
           'ignore-power': true,
         }));
+  });
+
+  test('errors', () async {
+    var server = DBusServer();
+    addTearDown(() async => await server.close());
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    const errors = {
+      'org.freedesktop.fwupd.Internal': FwupdError.internal,
+      'org.freedesktop.fwupd.VersionNewer': FwupdError.versionNewer,
+      'org.freedesktop.fwupd.VersionSame': FwupdError.versionSame,
+      'org.freedesktop.fwupd.AlreadyPending': FwupdError.alreadyPending,
+      'org.freedesktop.fwupd.AuthFailed': FwupdError.authFailed,
+      'org.freedesktop.fwupd.Read': FwupdError.read,
+      'org.freedesktop.fwupd.Write': FwupdError.write,
+      'org.freedesktop.fwupd.InvalidFile': FwupdError.invalidFile,
+      'org.freedesktop.fwupd.NotFound': FwupdError.notFound,
+      'org.freedesktop.fwupd.NothingToDo': FwupdError.nothingToDo,
+      'org.freedesktop.fwupd.NotSupported': FwupdError.notSupported,
+      'org.freedesktop.fwupd.SignatureInvalid': FwupdError.signatureInvalid,
+      'org.freedesktop.fwupd.AcPowerRequired': FwupdError.acPowerRequired,
+      'org.freedesktop.fwupd.PermissionDenied': FwupdError.permissionDenied,
+      'org.freedesktop.fwupd.BrokenSystem': FwupdError.brokenSystem,
+      'org.freedesktop.fwupd.BatteryLevelTooLow': FwupdError.batteryLevelTooLow,
+      'org.freedesktop.fwupd.NeedsUserAction': FwupdError.needsUserAction,
+    };
+
+    var fwupd = MockFwupdServer(clientAddress, errors: errors.keys.toList());
+    addTearDown(() async => await fwupd.close());
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
+    await client.connect();
+
+    while (fwupd.errors.isNotEmpty) {
+      await expectLater(
+          () => client.getReleases(''),
+          throwsA(isA<FwupdException>().having(
+              (e) => e.error, 'error', equals(errors[fwupd.errors.first]))));
+    }
   });
 }

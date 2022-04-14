@@ -118,11 +118,68 @@ enum FwupdInstallFlag {
   ignorePower,
 }
 
-class FwupdException implements Exception {}
+enum FwupdError {
+  /// Internal error
+  internal,
 
-class FwupdNotSupportedException extends FwupdException {}
+  /// Installed newer firmware version
+  versionNewer,
 
-class FwupdNothingToDoException extends FwupdException {}
+  /// Installed same firmware version
+  versionSame,
+
+  /// Already set be be installed offline
+  alreadyPending,
+
+  /// Failed to get authentication
+  authFailed,
+
+  /// Failed to read from device
+  read,
+
+  /// Failed to write to the device
+  write,
+
+  /// Invalid file format
+  invalidFile,
+
+  /// No matching device exists
+  notFound,
+
+  /// Nothing to do
+  nothingToDo,
+
+  /// Action was not possible
+  notSupported,
+
+  /// Signature was invalid
+  signatureInvalid,
+
+  /// AC power was required
+  acPowerRequired,
+
+  /// Permission was denied
+  permissionDenied,
+
+  /// User has configured their system in a broken way
+  brokenSystem,
+
+  /// The system battery level is too low
+  batteryLevelTooLow,
+
+  /// User needs to do an action to complete the update
+  needsUserAction,
+}
+
+class FwupdException implements Exception {
+  final FwupdError error;
+  final dynamic message;
+
+  const FwupdException(this.error, [this.message]);
+
+  @override
+  String toString() => 'FwupdException(${error.name}: $message)';
+}
 
 @immutable
 class FwupdDevice {
@@ -506,8 +563,7 @@ class FwupdClient {
 
   /// Gets the devices being managed by fwupd.
   Future<List<FwupdDevice>> getDevices() async {
-    var response = await _root.callMethod(
-        'org.freedesktop.fwupd', 'GetDevices', [],
+    var response = await _callMethod('GetDevices', [],
         replySignature: DBusSignature('aa{sv}'));
     var devices = (response.returnValues[0] as DBusArray)
         .children
@@ -521,8 +577,7 @@ class FwupdClient {
 
   /// Gets the plugins supported by fwupd.
   Future<List<FwupdPlugin>> getPlugins() async {
-    var response = await _root.callMethod(
-        'org.freedesktop.fwupd', 'GetPlugins', [],
+    var response = await _callMethod('GetPlugins', [],
         replySignature: DBusSignature('aa{sv}'));
     return (response.returnValues[0] as DBusArray)
         .children
@@ -546,22 +601,8 @@ class FwupdClient {
 
   Future<List<FwupdRelease>> _getReleases(
       String method, String deviceId) async {
-    DBusMethodResponse response;
-    try {
-      response = await _root.callMethod(
-          'org.freedesktop.fwupd', method, [DBusString(deviceId)],
-          replySignature: DBusSignature('aa{sv}'));
-    } on DBusMethodResponseException catch (e) {
-      var errorResponse = e.response;
-      switch (errorResponse.errorName) {
-        case 'org.freedesktop.fwupd.NotSupported':
-          throw FwupdNotSupportedException();
-        case 'org.freedesktop.fwupd.NothingToDo':
-          throw FwupdNothingToDoException();
-        default:
-          rethrow;
-      }
-    }
+    var response = await _callMethod(method, [DBusString(deviceId)],
+        replySignature: DBusSignature('aa{sv}'));
     return (response.returnValues[0] as DBusArray)
         .children
         .map((child) => (child as DBusDict).children.map((key, value) =>
@@ -595,34 +636,31 @@ class FwupdClient {
           DBusBoolean(flags.contains(FwupdInstallFlag.allowBranchSwitch)),
       'ignore-power': DBusBoolean(flags.contains(FwupdInstallFlag.ignorePower)),
     });
-    await _root.callMethod('org.freedesktop.fwupd', 'Install',
-        [DBusString(id), DBusUnixFd(handle), options],
+    await _callMethod('Install', [DBusString(id), DBusUnixFd(handle), options],
         replySignature: DBusSignature(''));
   }
 
   /// Verify firmware on a device.
   Future<void> verify(String id) async {
-    await _root.callMethod('org.freedesktop.fwupd', 'Verify', [DBusString(id)],
+    await _callMethod('Verify', [DBusString(id)],
         replySignature: DBusSignature(''));
   }
 
   /// Update the cryptographic hash stored for a device.
   Future<void> verifyUpdate(String id) async {
-    await _root.callMethod(
-        'org.freedesktop.fwupd', 'VerifyUpdate', [DBusString(id)],
+    await _callMethod('VerifyUpdate', [DBusString(id)],
         replySignature: DBusSignature(''));
   }
 
   /// Unlock a device to allow firmware access.
   Future<void> unlock(String id) async {
-    await _root.callMethod('org.freedesktop.fwupd', 'Unlock', [DBusString(id)],
+    await _callMethod('Unlock', [DBusString(id)],
         replySignature: DBusSignature(''));
   }
 
   /// Activate a firmware update on a device.
   Future<void> activate(String id) async {
-    await _root.callMethod(
-        'org.freedesktop.fwupd', 'Activate', [DBusString(id)],
+    await _callMethod('Activate', [DBusString(id)],
         replySignature: DBusSignature(''));
   }
 
@@ -630,8 +668,7 @@ class FwupdClient {
 
   /// Gets the remotes configured in fwupd.
   Future<List<FwupdRemote>> getRemotes() async {
-    var response = await _root.callMethod(
-        'org.freedesktop.fwupd', 'GetRemotes', [],
+    var response = await _callMethod('GetRemotes', [],
         replySignature: DBusSignature('aa{sv}'));
     return (response.returnValues[0] as DBusArray)
         .children
@@ -653,8 +690,7 @@ class FwupdClient {
 
   /// Clear the results of an offline update.
   Future<void> clearResults(String id) async {
-    await _root.callMethod(
-        'org.freedesktop.fwupd', 'ClearResults', [DBusString(id)],
+    await _callMethod('ClearResults', [DBusString(id)],
         replySignature: DBusSignature(''));
   }
 
@@ -856,5 +892,65 @@ class FwupdClient {
       title: (properties['Title'] as DBusString?)?.value,
       username: (properties['Username'] as DBusString?)?.value,
     );
+  }
+
+  Future<DBusMethodSuccessResponse> _callMethod(
+      String name, Iterable<DBusValue> values,
+      {DBusSignature? replySignature,
+      bool noReplyExpected = false,
+      bool noAutoStart = false,
+      bool allowInteractiveAuthorization = false}) async {
+    try {
+      return await _root.callMethod(
+        'org.freedesktop.fwupd',
+        name,
+        values,
+        replySignature: replySignature,
+        noReplyExpected: noReplyExpected,
+        noAutoStart: noAutoStart,
+        allowInteractiveAuthorization: allowInteractiveAuthorization,
+      );
+    } on DBusMethodResponseException catch (e) {
+      var errorResponse = e.response;
+      var errorMessage = errorResponse.values.firstOrNull?.toNative();
+      switch (errorResponse.errorName) {
+        case 'org.freedesktop.fwupd.Internal':
+          throw FwupdException(FwupdError.internal, errorMessage);
+        case 'org.freedesktop.fwupd.VersionNewer':
+          throw FwupdException(FwupdError.versionNewer, errorMessage);
+        case 'org.freedesktop.fwupd.VersionSame':
+          throw FwupdException(FwupdError.versionSame, errorMessage);
+        case 'org.freedesktop.fwupd.AlreadyPending':
+          throw FwupdException(FwupdError.alreadyPending, errorMessage);
+        case 'org.freedesktop.fwupd.AuthFailed':
+          throw FwupdException(FwupdError.authFailed, errorMessage);
+        case 'org.freedesktop.fwupd.Read':
+          throw FwupdException(FwupdError.read, errorMessage);
+        case 'org.freedesktop.fwupd.Write':
+          throw FwupdException(FwupdError.write, errorMessage);
+        case 'org.freedesktop.fwupd.InvalidFile':
+          throw FwupdException(FwupdError.invalidFile, errorMessage);
+        case 'org.freedesktop.fwupd.NotFound':
+          throw FwupdException(FwupdError.notFound, errorMessage);
+        case 'org.freedesktop.fwupd.NothingToDo':
+          throw FwupdException(FwupdError.nothingToDo, errorMessage);
+        case 'org.freedesktop.fwupd.NotSupported':
+          throw FwupdException(FwupdError.notSupported, errorMessage);
+        case 'org.freedesktop.fwupd.SignatureInvalid':
+          throw FwupdException(FwupdError.signatureInvalid, errorMessage);
+        case 'org.freedesktop.fwupd.AcPowerRequired':
+          throw FwupdException(FwupdError.acPowerRequired, errorMessage);
+        case 'org.freedesktop.fwupd.PermissionDenied':
+          throw FwupdException(FwupdError.permissionDenied, errorMessage);
+        case 'org.freedesktop.fwupd.BrokenSystem':
+          throw FwupdException(FwupdError.brokenSystem, errorMessage);
+        case 'org.freedesktop.fwupd.BatteryLevelTooLow':
+          throw FwupdException(FwupdError.batteryLevelTooLow, errorMessage);
+        case 'org.freedesktop.fwupd.NeedsUserAction':
+          throw FwupdException(FwupdError.needsUserAction, errorMessage);
+        default:
+          rethrow;
+      }
+    }
   }
 }
