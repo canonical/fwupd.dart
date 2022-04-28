@@ -1086,23 +1086,24 @@ void main() {
         await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
 
     const errors = {
-      'org.freedesktop.fwupd.Internal': FwupdError.internal,
-      'org.freedesktop.fwupd.VersionNewer': FwupdError.versionNewer,
-      'org.freedesktop.fwupd.VersionSame': FwupdError.versionSame,
-      'org.freedesktop.fwupd.AlreadyPending': FwupdError.alreadyPending,
-      'org.freedesktop.fwupd.AuthFailed': FwupdError.authFailed,
-      'org.freedesktop.fwupd.Read': FwupdError.read,
-      'org.freedesktop.fwupd.Write': FwupdError.write,
-      'org.freedesktop.fwupd.InvalidFile': FwupdError.invalidFile,
-      'org.freedesktop.fwupd.NotFound': FwupdError.notFound,
-      'org.freedesktop.fwupd.NothingToDo': FwupdError.nothingToDo,
-      'org.freedesktop.fwupd.NotSupported': FwupdError.notSupported,
-      'org.freedesktop.fwupd.SignatureInvalid': FwupdError.signatureInvalid,
-      'org.freedesktop.fwupd.AcPowerRequired': FwupdError.acPowerRequired,
-      'org.freedesktop.fwupd.PermissionDenied': FwupdError.permissionDenied,
-      'org.freedesktop.fwupd.BrokenSystem': FwupdError.brokenSystem,
-      'org.freedesktop.fwupd.BatteryLevelTooLow': FwupdError.batteryLevelTooLow,
-      'org.freedesktop.fwupd.NeedsUserAction': FwupdError.needsUserAction,
+      'org.freedesktop.fwupd.Internal': FwupdInternalException,
+      'org.freedesktop.fwupd.VersionNewer': FwupdVersionNewerException,
+      'org.freedesktop.fwupd.VersionSame': FwupdVersionSameException,
+      'org.freedesktop.fwupd.AlreadyPending': FwupdAlreadyPendingException,
+      'org.freedesktop.fwupd.AuthFailed': FwupdAuthFailedException,
+      'org.freedesktop.fwupd.Read': FwupdReadException,
+      'org.freedesktop.fwupd.Write': FwupdWriteException,
+      'org.freedesktop.fwupd.InvalidFile': FwupdInvalidFileException,
+      'org.freedesktop.fwupd.NotFound': FwupdNotFoundException,
+      'org.freedesktop.fwupd.NothingToDo': FwupdNothingToDoException,
+      'org.freedesktop.fwupd.NotSupported': FwupdNotSupportedException,
+      'org.freedesktop.fwupd.SignatureInvalid': FwupdSignatureInvalidException,
+      'org.freedesktop.fwupd.AcPowerRequired': FwupdAcPowerRequiredException,
+      'org.freedesktop.fwupd.PermissionDenied': FwupdPermissionDeniedException,
+      'org.freedesktop.fwupd.BrokenSystem': FwupdBrokenSystemException,
+      'org.freedesktop.fwupd.BatteryLevelTooLow':
+          FwupdBatteryLevelTooLowException,
+      'org.freedesktop.fwupd.NeedsUserAction': FwupdNeedsUserActionException,
     };
 
     var fwupd = MockFwupdServer(clientAddress, errors: errors.keys.toList());
@@ -1116,8 +1117,8 @@ void main() {
     while (fwupd.errors.isNotEmpty) {
       await expectLater(
           () => client.getReleases(''),
-          throwsA(isA<FwupdException>().having(
-              (e) => e.error, 'error', equals(errors[fwupd.errors.first]))));
+          throwsA(isA<FwupdException>().having((e) => e.runtimeType, 'error',
+              equals(errors[fwupd.errors.first]))));
     }
   });
 }
