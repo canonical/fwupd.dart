@@ -569,27 +569,22 @@ class FwupdClient {
 
     var deviceAdded = DBusRemoteObjectSignalStream(
         object: _root, interface: 'org.freedesktop.fwupd', name: 'DeviceAdded');
-    _deviceAddedSubscription = deviceAdded.listen((signal) => _deviceAdded(
-        (signal.values[0] as DBusDict).children.map((key, value) => MapEntry(
-            (key as DBusString).value, (value as DBusVariant).value))));
+    _deviceAddedSubscription = deviceAdded.listen((signal) =>
+        _deviceAdded((signal.values[0] as DBusDict).mapStringVariant()));
 
     var deviceChanged = DBusRemoteObjectSignalStream(
         object: _root,
         interface: 'org.freedesktop.fwupd',
         name: 'DeviceChanged');
     _deviceChangedSubscription = deviceChanged.listen((signal) =>
-        _deviceChanged((signal.values[0] as DBusDict).children.map(
-            (key, value) => MapEntry(
-                (key as DBusString).value, (value as DBusVariant).value))));
+        _deviceChanged((signal.values[0] as DBusDict).mapStringVariant()));
 
     var deviceRemoved = DBusRemoteObjectSignalStream(
         object: _root,
         interface: 'org.freedesktop.fwupd',
         name: 'DeviceRemoved');
     _deviceRemovedSubscription = deviceRemoved.listen((signal) =>
-        _deviceRemoved((signal.values[0] as DBusDict).children.map(
-            (key, value) => MapEntry(
-                (key as DBusString).value, (value as DBusVariant).value))));
+        _deviceRemoved((signal.values[0] as DBusDict).mapStringVariant()));
   }
 
   /// Gets the devices being managed by fwupd.
@@ -598,8 +593,7 @@ class FwupdClient {
         replySignature: DBusSignature('aa{sv}'));
     var devices = (response.returnValues[0] as DBusArray)
         .children
-        .map((child) => (child as DBusDict).children.map((key, value) =>
-            MapEntry((key as DBusString).value, (value as DBusVariant).value)))
+        .map((child) => (child as DBusDict).mapStringVariant())
         .map((properties) => _parseDevice(properties))
         .toList();
     _devices = {for (var device in devices) device.deviceId: device};
@@ -612,8 +606,7 @@ class FwupdClient {
         replySignature: DBusSignature('aa{sv}'));
     return (response.returnValues[0] as DBusArray)
         .children
-        .map((child) => (child as DBusDict).children.map((key, value) =>
-            MapEntry((key as DBusString).value, (value as DBusVariant).value)))
+        .map((child) => (child as DBusDict).mapStringVariant())
         .map((properties) => _parsePlugin(properties))
         .toList();
   }
@@ -636,8 +629,7 @@ class FwupdClient {
         replySignature: DBusSignature('aa{sv}'));
     return (response.returnValues[0] as DBusArray)
         .children
-        .map((child) => (child as DBusDict).children.map((key, value) =>
-            MapEntry((key as DBusString).value, (value as DBusVariant).value)))
+        .map((child) => (child as DBusDict).mapStringVariant())
         .map((properties) => _parseRelease(properties))
         .toList();
   }
@@ -703,8 +695,7 @@ class FwupdClient {
         replySignature: DBusSignature('aa{sv}'));
     return (response.returnValues[0] as DBusArray)
         .children
-        .map((child) => (child as DBusDict).children.map((key, value) =>
-            MapEntry((key as DBusString).value, (value as DBusVariant).value)))
+        .map((child) => (child as DBusDict).mapStringVariant())
         .map((properties) => _parseRemote(properties))
         .toList();
   }
