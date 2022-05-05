@@ -800,16 +800,8 @@ class FwupdClient {
         deviceId: (properties['DeviceId'] as DBusString?)?.value ?? '',
         name: (properties['Name'] as DBusString?)?.value ?? '',
         flags: flags,
-        guid: (properties['Guid'] as DBusArray?)
-                ?.children
-                .map((value) => (value as DBusString).value)
-                .toList() ??
-            [],
-        icon: (properties['Icon'] as DBusArray?)
-                ?.children
-                .map((value) => (value as DBusString).value)
-                .toList() ??
-            [],
+        guid: (properties['Guid'] as DBusArray?)?.mapString().toList() ?? [],
+        icon: (properties['Icon'] as DBusArray?)?.mapString().toList() ?? [],
         modified: _parseDateTime(properties['Modified']),
         parentDeviceId: (properties['ParentDeviceId'] as DBusString?)?.value,
         plugin: (properties['Plugin'] as DBusString?)?.value ?? '',
@@ -859,11 +851,8 @@ class FwupdClient {
         installDuration:
             (properties['InstallDuration'] as DBusUint32?)?.value ?? 0,
         license: (properties['License'] as DBusString?)?.value ?? '',
-        locations: (properties['Locations'] as DBusArray?)
-                ?.children
-                .map((value) => (value as DBusString).value)
-                .toList() ??
-            [],
+        locations:
+            (properties['Locations'] as DBusArray?)?.mapString().toList() ?? [],
         name: (properties['Name'] as DBusString?)?.value ?? '',
         protocol: (properties['Protocol'] as DBusString?)?.value,
         remoteId: (properties['RemoteId'] as DBusString?)?.value,
