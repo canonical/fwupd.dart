@@ -709,13 +709,37 @@ class FwupdClient {
         .toList();
   }
 
-  // FIXME: 'GetApprovedFirmware'
+  /// Gets the list of approved firmware checksums
+  Future<List<String>> getApprovedFirmware() async {
+    var response = await _callMethod('GetApprovedFirmware', [],
+        replySignature: DBusSignature('as'));
+    return (response.returnValues[0] as DBusArray)
+        .children
+        .map((child) => (child as DBusString).value)
+        .toList();
+  }
 
-  // FIXME: 'SetApprovedFirmware'
+  /// Sets the list of approved firmware checksums
+  Future<void> setApprovedFirmware(List<String> checksums) {
+    return _callMethod('SetApprovedFirmware', [DBusArray.string(checksums)],
+        replySignature: DBusSignature(''));
+  }
 
-  // FIXME: 'GetBlockedFirmware'
+  /// Gets the list of blocked firmware checksums
+  Future<List<String>> getBlockedFirmware() async {
+    var response = await _callMethod('GetBlockedFirmware', [],
+        replySignature: DBusSignature('as'));
+    return (response.returnValues[0] as DBusArray)
+        .children
+        .map((child) => (child as DBusString).value)
+        .toList();
+  }
 
-  // FIXME: 'SetBlockedFirmware'
+  /// Sets the list of blocked firmware checksums
+  Future<void> setBlockedFirmware(List<String> checksums) {
+    return _callMethod('SetBlockedFirmware', [DBusArray.string(checksums)],
+        replySignature: DBusSignature(''));
+  }
 
   // FIXME: 'SetFeatureFlags'
 
