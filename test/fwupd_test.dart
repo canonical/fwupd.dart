@@ -126,9 +126,21 @@ class MockFwupdObject extends DBusObject {
         return DBusMethodSuccessResponse(
             [DBusArray.string(server.approvedFirmware)]);
 
+      case 'SetApprovedFirmware':
+        var checksums = (methodCall.values[0] as DBusArray).children;
+        server.approvedFirmware.replaceRange(0, server.approvedFirmware.length,
+            checksums.map((c) => (c as DBusString).value));
+        return DBusMethodSuccessResponse();
+
       case 'GetBlockedFirmware':
         return DBusMethodSuccessResponse(
             [DBusArray.string(server.blockedFirmware)]);
+
+      case 'SetBlockedFirmware':
+        var checksums = (methodCall.values[0] as DBusArray).children;
+        server.blockedFirmware.replaceRange(0, server.blockedFirmware.length,
+            checksums.map((c) => (c as DBusString).value));
+        return DBusMethodSuccessResponse();
 
       case 'GetDevices':
         var r = <DBusValue>[];
@@ -1120,5 +1132,47 @@ void main() {
           throwsA(isA<FwupdException>().having((e) => e.runtimeType, 'error',
               equals(errors[fwupd.errors.first]))));
     }
+  });
+
+  test('approved firmware', () async {
+    var server = DBusServer();
+    addTearDown(() async => await server.close());
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var fwupd = MockFwupdServer(clientAddress, approvedFirmware: ['a1', 'a2']);
+    addTearDown(() async => await fwupd.close());
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
+    await client.connect();
+
+    var approvedFirmware = await client.getApprovedFirmware();
+    expect(approvedFirmware, ['a1', 'a2']);
+
+    await client.setApprovedFirmware(['a3', 'a4']);
+    expect(fwupd.approvedFirmware, ['a3', 'a4']);
+  });
+
+  test('blocked firmware', () async {
+    var server = DBusServer();
+    addTearDown(() async => await server.close());
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var fwupd = MockFwupdServer(clientAddress, blockedFirmware: ['b1', 'b2']);
+    addTearDown(() async => await fwupd.close());
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
+    await client.connect();
+
+    var blockedFirmware = await client.getBlockedFirmware();
+    expect(blockedFirmware, ['b1', 'b2']);
+
+    await client.setBlockedFirmware(['b3', 'b4']);
+    expect(fwupd.blockedFirmware, ['b3', 'b4']);
   });
 }
