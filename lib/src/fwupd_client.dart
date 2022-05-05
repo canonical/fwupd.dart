@@ -660,31 +660,31 @@ class FwupdClient {
       'ignore-power': DBusBoolean(flags.contains(FwupdInstallFlag.ignorePower)),
     });
     await _callMethod('Install', [DBusString(id), DBusUnixFd(handle), options],
-        replySignature: DBusSignature(''));
+        replySignature: DBusSignature.empty);
   }
 
   /// Verify firmware on a device.
   Future<void> verify(String id) async {
     await _callMethod('Verify', [DBusString(id)],
-        replySignature: DBusSignature(''));
+        replySignature: DBusSignature.empty);
   }
 
   /// Update the cryptographic hash stored for a device.
   Future<void> verifyUpdate(String id) async {
     await _callMethod('VerifyUpdate', [DBusString(id)],
-        replySignature: DBusSignature(''));
+        replySignature: DBusSignature.empty);
   }
 
   /// Unlock a device to allow firmware access.
   Future<void> unlock(String id) async {
     await _callMethod('Unlock', [DBusString(id)],
-        replySignature: DBusSignature(''));
+        replySignature: DBusSignature.empty);
   }
 
   /// Activate a firmware update on a device.
   Future<void> activate(String id) async {
     await _callMethod('Activate', [DBusString(id)],
-        replySignature: DBusSignature(''));
+        replySignature: DBusSignature.empty);
   }
 
   // FIXME: 'GetResults'
@@ -713,7 +713,7 @@ class FwupdClient {
   /// Clear the results of an offline update.
   Future<void> clearResults(String id) async {
     await _callMethod('ClearResults', [DBusString(id)],
-        replySignature: DBusSignature(''));
+        replySignature: DBusSignature.empty);
   }
 
   // FIXME: 'ModifyDevice'
