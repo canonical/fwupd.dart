@@ -1,6 +1,7 @@
 import 'package:collection/collection.dart';
 import 'package:meta/meta.dart';
 
+/// Flags used to represent device attributes.
 enum FwupdDeviceFlag {
   internal,
   updatable,
@@ -50,6 +51,7 @@ enum FwupdDeviceFlag {
   affectsFde
 }
 
+/// Flags used when parsing version numbers.
 enum FwupdVersionFormat {
   unknown,
   plain,
@@ -66,6 +68,7 @@ enum FwupdVersionFormat {
   hex
 }
 
+/// Update state.
 enum FwupdUpdateState {
   unknown,
   pending,
@@ -75,26 +78,64 @@ enum FwupdUpdateState {
   failedTransient,
 }
 
+/// A physical device on the host with optionally updatable firmware.
 @immutable
 class FwupdDevice {
+  /// Device checksum.
   final String? checksum;
+
+  /// When the device was created.
   final DateTime? created;
+
+  /// Id for this device.
   final String deviceId;
+
+  /// Device flags.
   final Set<FwupdDeviceFlag> flags;
+
+  /// GUIDs used by this device.
   final List<String> guid;
+
+  /// Icon names to use for the device.
   final List<String> icon;
+
+  /// When the device was modified.
   final DateTime? modified;
+
+  /// Device name.
   final String name;
+
+  /// Id of the parent device.
   final String? parentDeviceId;
+
+  /// The plugin that created the device.
   final String plugin;
+
+  /// The protocol name that the device uses for updating.
   final String? protocol;
+
+  /// One line device summary.
   final String? summary;
+
+  /// Update state.
   final FwupdUpdateState updateState;
+
+  // Device vendor.
   final String? vendor;
+
+  /// Combined device vendor ID.
   final String? vendorId;
+
+  /// Device version.
   final String? version;
+
+  /// Version of the bootloader.
   final String? versionBootloader;
+
+  /// Format that [version], [versionBootloader] and [versionLowest] is in.
   final FwupdVersionFormat versionFormat;
+
+  /// Lowest version of firmware the device will accept.
   final String? versionLowest;
 
   FwupdDevice(

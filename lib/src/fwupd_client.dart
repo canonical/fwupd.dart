@@ -10,6 +10,7 @@ import 'fwupd_plugin.dart';
 import 'fwupd_release.dart';
 import 'fwupd_remote.dart';
 
+/// Daemon status.
 enum FwupdStatus {
   unknown,
   idle,
@@ -27,6 +28,7 @@ enum FwupdStatus {
   shutdown
 }
 
+/// Flags to set when performing the firmware update or install.
 enum FwupdInstallFlag {
   offline,
   allowReinstall,
