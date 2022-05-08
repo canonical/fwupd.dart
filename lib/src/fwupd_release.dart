@@ -13,26 +13,69 @@ enum FwupdReleaseFlag {
 
 enum FwupdReleaseUrgency { unknown, low, medium, high, critical }
 
+/// A firmware release with a specific version.
+///
+/// Devices can have more than one release, and the releases are typically ordered by their version.
 @immutable
 class FwupdRelease {
+  /// Appstream ID for this release.
   final String? appstreamId;
+
+  /// Release checksum.
   final String? checksum;
+
+  /// When the update was created.
   final DateTime? created;
+
+  /// Update description in AppStream markup format.
   final String description;
+
+  /// Update filename.
   final String? filename;
+
+  /// Update homepage URL
   final String homepage;
+
+  /// Time estimate for firmware installation in seconds.
   final int installDuration;
+
+  /// Update license.
   final String license;
+
+  /// Update URI, i.e. where you can download the firmware from.
+  ///
+  /// Typically the first URI will be the main HTTP mirror, but all URIs may not be valid HTTP URIs. For example, "ipns://QmSrPmba" is valid here.
   final List<String> locations;
+
+  /// Update name.
   final String name;
+
+  /// Update protocol, e.g. `org.usb.dfu`
   final String? protocol;
+
+  /// Remote ID that can be used for downloading.
   final String? remoteId;
+
+  /// Update size in bytes.
   final int size;
+
+  /// One line update summary.
   final String summary;
+
+  /// Release flags.
   final Set<FwupdReleaseFlag> flags;
+
+  /// Release urgency.
   final FwupdReleaseUrgency urgency;
+
+  /// Default update URI.
+  /// Deprecated, use [locations] instead.
   final String? uri;
+
+  /// Vendor name, e.g. `Hughski Limited`.
   final String vendor;
+
+  /// Update version, e.g. `1.2.4`.
   final String version;
 
   FwupdRelease(
