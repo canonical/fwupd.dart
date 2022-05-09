@@ -6,5 +6,5 @@ class FwupdPlugin {
   });
 
   @override
-  String toString() => 'FwupdDevice(name: $name)';
+  String toString() => 'FwupdPlugin(name: $name)';
 }
