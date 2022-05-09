@@ -258,6 +258,17 @@ class MockFwupdObject extends DBusObject {
           DBusArray(DBusSignature('a{sv}'),
               downgrades.map((e) => DBusDict.stringVariant(e)))
         ]);
+
+      case 'GetDetails':
+        if (server.details.isEmpty || methodCall.values[0] is! DBusUnixFd) {
+          return DBusMethodErrorResponse(
+              'org.freedesktop.fwupd.Internal', [DBusString('invalid handle')]);
+        }
+        return DBusMethodSuccessResponse([
+          DBusArray(DBusSignature('a{sv}'),
+              server.details.map((e) => DBusDict.stringVariant(e)))
+        ]);
+
       default:
         return DBusMethodErrorResponse.unknownMethod();
     }
@@ -285,6 +296,7 @@ class MockFwupdServer extends DBusClient {
   final Map<String, List<Map<String, DBusValue>>> upgrades;
   final Map<String, List<Map<String, DBusValue>>> downgrades;
   final List<String> errors;
+  final List<Map<String, DBusValue>> details;
 
   MockFwupdServer(DBusAddress clientAddress,
       {this.approvedFirmware = const [],
@@ -304,7 +316,8 @@ class MockFwupdServer extends DBusClient {
       this.tainted = false,
       this.upgrades = const {},
       this.downgrades = const {},
-      this.errors = const []})
+      this.errors = const [],
+      this.details = const []})
       : super(clientAddress);
 
   Future<void> start() async {
@@ -1174,5 +1187,52 @@ void main() {
 
     await client.setBlockedFirmware(['b3', 'b4']);
     expect(fwupd.blockedFirmware, ['b3', 'b4']);
+  });
+
+  test('get details', () async {
+    var server = DBusServer();
+    addTearDown(() async => await server.close());
+    var clientAddress =
+        await server.listenAddress(DBusAddress.unix(dir: Directory.systemTemp));
+
+    var fwupd = MockFwupdServer(clientAddress, details: [
+      {
+        'Name': DBusString('NAME'),
+        'DeviceId': DBusString('ID'),
+        'Vendor': DBusString('VENDOR'),
+        'Release': DBusArray(DBusSignature('a{sv}'), [
+          DBusDict.stringVariant(
+              {'Name': DBusString('RELEASE'), 'Version': DBusString('1.0')}),
+          DBusDict.stringVariant(
+              {'Name': DBusString('RELEASE'), 'Version': DBusString('1.1')})
+        ]),
+      }
+    ]);
+    addTearDown(() async => await fwupd.close());
+    await fwupd.start();
+
+    var client = FwupdClient(bus: DBusClient(clientAddress));
+    addTearDown(() async => await client.close());
+    await client.connect();
+
+    var handle = ResourceHandle.fromStdin(stdin);
+    var details = await client.getDetails(handle);
+    expect(details, hasLength(1));
+
+    var device = details.keys.single;
+    expect(device.name, 'NAME');
+    expect(device.deviceId, 'ID');
+    expect(device.vendor, 'VENDOR');
+
+    var releases = details.values.single;
+    expect(releases, hasLength(2));
+    expect(releases[0].name, 'RELEASE');
+    expect(releases[0].version, '1.0');
+    expect(releases[1].name, 'RELEASE');
+    expect(releases[1].version, '1.1');
+
+    fwupd.details.clear();
+    await expectLater(() => client.getDetails(handle),
+        throwsA(isA<FwupdInternalException>()));
   });
 }

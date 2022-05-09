@@ -199,7 +199,23 @@ class FwupdClient {
         .toList();
   }
 
-  // FIXME: 'GetDetails'
+  /// Gets details about a firmware file.
+  Future<Map<FwupdDevice, List<FwupdRelease>>> getDetails(
+      ResourceHandle handle) async {
+    var response = await _callMethod('GetDetails', [DBusUnixFd(handle)],
+        replySignature: DBusSignature('aa{sv}'));
+    return Map.fromEntries((response.returnValues[0] as DBusArray)
+        .children
+        .map((child) => (child as DBusDict).mapStringVariant())
+        .map((properties) => MapEntry(
+            _parseDevice(properties),
+            (properties['Release'] as DBusArray?)
+                    ?.children
+                    .map((child) => (child as DBusDict).mapStringVariant())
+                    .map((properties) => _parseRelease(properties))
+                    .toList() ??
+                [])));
+  }
 
   // FIXME: 'GetHistory'
 
