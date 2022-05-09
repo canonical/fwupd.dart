@@ -1,5 +1,8 @@
 import 'package:collection/collection.dart';
+import 'package:dbus/dbus.dart';
 import 'package:meta/meta.dart';
+
+import 'fwupd_utils.dart';
 
 enum FwupdDeviceFlag {
   internal,
@@ -117,6 +120,47 @@ class FwupdDevice {
       this.versionBootloader,
       this.versionFormat = FwupdVersionFormat.unknown,
       this.versionLowest});
+
+  factory FwupdDevice.fromProperties(Map<String, DBusValue> properties) {
+    var flagsValue = (properties['Flags'] as DBusUint64?)?.value ?? 0;
+    var flags = <FwupdDeviceFlag>{};
+    for (var i = 0; i < FwupdDeviceFlag.values.length; i++) {
+      if (flagsValue & (1 << i) != 0) {
+        flags.add(FwupdDeviceFlag.values[i]);
+      }
+    }
+    var updateStateValue =
+        (properties['UpdateState'] as DBusUint32?)?.value ?? 0;
+    var updateState = updateStateValue < FwupdUpdateState.values.length
+        ? FwupdUpdateState.values[updateStateValue]
+        : FwupdUpdateState.unknown;
+    var versionFormatValue =
+        (properties['VersionFormat'] as DBusUint32?)?.value ?? 0;
+    var versionFormat = versionFormatValue < FwupdVersionFormat.values.length
+        ? FwupdVersionFormat.values[versionFormatValue]
+        : FwupdVersionFormat.unknown;
+    return FwupdDevice(
+        checksum: (properties['Checksum'] as DBusString?)?.value,
+        created: properties['Created']?.toDateTime(),
+        deviceId: (properties['DeviceId'] as DBusString?)?.value ?? '',
+        name: (properties['Name'] as DBusString?)?.value ?? '',
+        flags: flags,
+        guid: (properties['Guid'] as DBusArray?)?.mapString().toList() ?? [],
+        icon: (properties['Icon'] as DBusArray?)?.mapString().toList() ?? [],
+        modified: properties['Modified']?.toDateTime(),
+        parentDeviceId: (properties['ParentDeviceId'] as DBusString?)?.value,
+        plugin: (properties['Plugin'] as DBusString?)?.value ?? '',
+        protocol: (properties['Protocol'] as DBusString?)?.value,
+        summary: (properties['Summary'] as DBusString?)?.value,
+        updateState: updateState,
+        vendor: (properties['Vendor'] as DBusString?)?.value,
+        vendorId: (properties['VendorId'] as DBusString?)?.value,
+        version: (properties['Version'] as DBusString?)?.value,
+        versionBootloader:
+            (properties['VersionBootloader'] as DBusString?)?.value,
+        versionFormat: versionFormat,
+        versionLowest: (properties['VersionLowest'] as DBusString?)?.value);
+  }
 
   @override
   String toString() =>

@@ -1,5 +1,8 @@
 import 'package:collection/collection.dart';
+import 'package:dbus/dbus.dart';
 import 'package:meta/meta.dart';
+
+import 'fwupd_utils.dart';
 
 enum FwupdReleaseFlag {
   trustedPayload,
@@ -55,6 +58,42 @@ class FwupdRelease {
       this.uri,
       this.vendor = '',
       this.version = ''});
+
+  factory FwupdRelease.fromProperties(Map<String, DBusValue> properties) {
+    var flagsValue = (properties['TrustFlags'] as DBusUint64?)?.value ?? 0;
+    var flags = <FwupdReleaseFlag>{};
+    for (var i = 0; i < FwupdReleaseFlag.values.length; i++) {
+      if (flagsValue & (1 << i) != 0) {
+        flags.add(FwupdReleaseFlag.values[i]);
+      }
+    }
+    var urgencyValue = (properties['Urgency'] as DBusUint32?)?.value ?? 0;
+    var urgency = urgencyValue < FwupdReleaseUrgency.values.length
+        ? FwupdReleaseUrgency.values[urgencyValue]
+        : FwupdReleaseUrgency.unknown;
+    return FwupdRelease(
+        appstreamId: (properties['AppstreamId'] as DBusString?)?.value,
+        checksum: (properties['Checksum'] as DBusString?)?.value,
+        created: properties['Created']?.toDateTime(),
+        description: (properties['Description'] as DBusString?)?.value ?? '',
+        filename: (properties['Filename'] as DBusString?)?.value,
+        homepage: (properties['Homepage'] as DBusString?)?.value ?? '',
+        installDuration:
+            (properties['InstallDuration'] as DBusUint32?)?.value ?? 0,
+        license: (properties['License'] as DBusString?)?.value ?? '',
+        locations:
+            (properties['Locations'] as DBusArray?)?.mapString().toList() ?? [],
+        name: (properties['Name'] as DBusString?)?.value ?? '',
+        protocol: (properties['Protocol'] as DBusString?)?.value,
+        remoteId: (properties['RemoteId'] as DBusString?)?.value,
+        size: (properties['Size'] as DBusUint64?)?.value ?? 0,
+        summary: (properties['Summary'] as DBusString?)?.value ?? '',
+        flags: flags,
+        urgency: urgency,
+        uri: (properties['Uri'] as DBusString?)?.value,
+        vendor: (properties['Vendor'] as DBusString?)?.value ?? '',
+        version: (properties['Version'] as DBusString?)?.value ?? '');
+  }
 
   @override
   String toString() =>

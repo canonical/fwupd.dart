@@ -157,7 +157,7 @@ class FwupdClient {
     var devices = (response.returnValues[0] as DBusArray)
         .children
         .map((child) => (child as DBusDict).mapStringVariant())
-        .map((properties) => _parseDevice(properties))
+        .map((properties) => FwupdDevice.fromProperties(properties))
         .toList();
     _devices = {for (var device in devices) device.deviceId: device};
     return _devices.values.toList();
@@ -170,7 +170,7 @@ class FwupdClient {
     return (response.returnValues[0] as DBusArray)
         .children
         .map((child) => (child as DBusDict).mapStringVariant())
-        .map((properties) => _parsePlugin(properties))
+        .map((properties) => FwupdPlugin.fromProperties(properties))
         .toList();
   }
 
@@ -193,7 +193,7 @@ class FwupdClient {
     return (response.returnValues[0] as DBusArray)
         .children
         .map((child) => (child as DBusDict).mapStringVariant())
-        .map((properties) => _parseRelease(properties))
+        .map((properties) => FwupdRelease.fromProperties(properties))
         .toList();
   }
 
@@ -259,7 +259,7 @@ class FwupdClient {
     return (response.returnValues[0] as DBusArray)
         .children
         .map((child) => (child as DBusDict).mapStringVariant())
-        .map((properties) => _parseRemote(properties))
+        .map((properties) => FwupdRemote.fromProperties(properties))
         .toList();
   }
 
@@ -343,13 +343,13 @@ class FwupdClient {
   }
 
   Future<void> _deviceAdded(Map<String, DBusValue> properties) async {
-    var device = _parseDevice(properties);
+    var device = FwupdDevice.fromProperties(properties);
     _devices[device.deviceId] = device;
     _deviceAddedController.add(device);
   }
 
   Future<void> _deviceChanged(Map<String, DBusValue> properties) async {
-    final device = _parseDevice(properties);
+    final device = FwupdDevice.fromProperties(properties);
     if (device == _devices[device.deviceId]) {
       return;
     }
@@ -358,138 +358,9 @@ class FwupdClient {
   }
 
   Future<void> _deviceRemoved(Map<String, DBusValue> properties) async {
-    var device = _parseDevice(properties);
+    var device = FwupdDevice.fromProperties(properties);
     _devices.remove(device.deviceId);
     _deviceRemovedController.add(device);
-  }
-
-  FwupdDevice _parseDevice(Map<String, DBusValue> properties) {
-    var flagsValue = (properties['Flags'] as DBusUint64?)?.value ?? 0;
-    var flags = <FwupdDeviceFlag>{};
-    for (var i = 0; i < FwupdDeviceFlag.values.length; i++) {
-      if (flagsValue & (1 << i) != 0) {
-        flags.add(FwupdDeviceFlag.values[i]);
-      }
-    }
-    var updateStateValue =
-        (properties['UpdateState'] as DBusUint32?)?.value ?? 0;
-    var updateState = updateStateValue < FwupdUpdateState.values.length
-        ? FwupdUpdateState.values[updateStateValue]
-        : FwupdUpdateState.unknown;
-    var versionFormatValue =
-        (properties['VersionFormat'] as DBusUint32?)?.value ?? 0;
-    var versionFormat = versionFormatValue < FwupdVersionFormat.values.length
-        ? FwupdVersionFormat.values[versionFormatValue]
-        : FwupdVersionFormat.unknown;
-    return FwupdDevice(
-        checksum: (properties['Checksum'] as DBusString?)?.value,
-        created: _parseDateTime(properties['Created']),
-        deviceId: (properties['DeviceId'] as DBusString?)?.value ?? '',
-        name: (properties['Name'] as DBusString?)?.value ?? '',
-        flags: flags,
-        guid: (properties['Guid'] as DBusArray?)?.mapString().toList() ?? [],
-        icon: (properties['Icon'] as DBusArray?)?.mapString().toList() ?? [],
-        modified: _parseDateTime(properties['Modified']),
-        parentDeviceId: (properties['ParentDeviceId'] as DBusString?)?.value,
-        plugin: (properties['Plugin'] as DBusString?)?.value ?? '',
-        protocol: (properties['Protocol'] as DBusString?)?.value,
-        summary: (properties['Summary'] as DBusString?)?.value,
-        updateState: updateState,
-        vendor: (properties['Vendor'] as DBusString?)?.value,
-        vendorId: (properties['VendorId'] as DBusString?)?.value,
-        version: (properties['Version'] as DBusString?)?.value,
-        versionBootloader:
-            (properties['VersionBootloader'] as DBusString?)?.value,
-        versionFormat: versionFormat,
-        versionLowest: (properties['VersionLowest'] as DBusString?)?.value);
-  }
-
-  DateTime? _parseDateTime(DBusValue? value) {
-    var secs = (value as DBusUint64?)?.value ?? 0;
-    if (secs <= 0) {
-      return null;
-    }
-    return DateTime.fromMillisecondsSinceEpoch(secs * 1000, isUtc: true);
-  }
-
-  FwupdPlugin _parsePlugin(Map<String, DBusValue> properties) {
-    return FwupdPlugin(name: (properties['Name'] as DBusString?)?.value ?? '');
-  }
-
-  FwupdRelease _parseRelease(Map<String, DBusValue> properties) {
-    var flagsValue = (properties['TrustFlags'] as DBusUint64?)?.value ?? 0;
-    var flags = <FwupdReleaseFlag>{};
-    for (var i = 0; i < FwupdReleaseFlag.values.length; i++) {
-      if (flagsValue & (1 << i) != 0) {
-        flags.add(FwupdReleaseFlag.values[i]);
-      }
-    }
-    var urgencyValue = (properties['Urgency'] as DBusUint32?)?.value ?? 0;
-    var urgency = urgencyValue < FwupdReleaseUrgency.values.length
-        ? FwupdReleaseUrgency.values[urgencyValue]
-        : FwupdReleaseUrgency.unknown;
-    return FwupdRelease(
-        appstreamId: (properties['AppstreamId'] as DBusString?)?.value,
-        checksum: (properties['Checksum'] as DBusString?)?.value,
-        created: _parseDateTime(properties['Created']),
-        description: (properties['Description'] as DBusString?)?.value ?? '',
-        filename: (properties['Filename'] as DBusString?)?.value,
-        homepage: (properties['Homepage'] as DBusString?)?.value ?? '',
-        installDuration:
-            (properties['InstallDuration'] as DBusUint32?)?.value ?? 0,
-        license: (properties['License'] as DBusString?)?.value ?? '',
-        locations:
-            (properties['Locations'] as DBusArray?)?.mapString().toList() ?? [],
-        name: (properties['Name'] as DBusString?)?.value ?? '',
-        protocol: (properties['Protocol'] as DBusString?)?.value,
-        remoteId: (properties['RemoteId'] as DBusString?)?.value,
-        size: (properties['Size'] as DBusUint64?)?.value ?? 0,
-        summary: (properties['Summary'] as DBusString?)?.value ?? '',
-        flags: flags,
-        urgency: urgency,
-        uri: (properties['Uri'] as DBusString?)?.value,
-        vendor: (properties['Vendor'] as DBusString?)?.value ?? '',
-        version: (properties['Version'] as DBusString?)?.value ?? '');
-  }
-
-  FwupdRemote _parseRemote(Map<String, DBusValue> properties) {
-    var kindValue = (properties['Type'] as DBusUint32?)?.value ?? 0;
-    var kind = kindValue < FwupdRemoteKind.values.length
-        ? FwupdRemoteKind.values[kindValue]
-        : FwupdRemoteKind.unknown;
-    var keyringValue = (properties['Keyring'] as DBusUint32?)?.value ?? 0;
-    var keyring = keyringValue < FwupdKeyringKind.values.length
-        ? FwupdKeyringKind.values[keyringValue]
-        : FwupdKeyringKind.jcat;
-    return FwupdRemote(
-      age: _parseDateTime(properties['ModificationTime']),
-      agreement: (properties['Agreement'] as DBusString?)?.value,
-      approvalRequired:
-          (properties['ApprovalRequired'] as DBusBoolean?)?.value ?? false,
-      automaticReports:
-          (properties['AutomaticReports'] as DBusBoolean?)?.value ?? false,
-      automaticSecurityReports:
-          (properties['AutomaticSecurityReports'] as DBusBoolean?)?.value ??
-              false,
-      checksum: (properties['Checksum'] as DBusString?)?.value,
-      enabled: (properties['Enabled'] as DBusBoolean?)?.value ?? false,
-      filenameCache: (properties['FilenameCache'] as DBusString?)?.value,
-      filenameCacheSig: (properties['FilenameCacheSig'] as DBusString?)?.value,
-      filenameSource: (properties['FilenameSource'] as DBusString?)?.value,
-      firmwareBaseUri: (properties['FirmwareBaseUri'] as DBusString?)?.value,
-      id: (properties['RemoteId'] as DBusString?)?.value ?? '',
-      keyringKind: keyring,
-      kind: kind,
-      metadataUri: (properties['Uri'] as DBusString?)?.value,
-      password: (properties['Password'] as DBusString?)?.value,
-      priority: (properties['Priority'] as DBusInt32?)?.value ?? 0,
-      remotesDir: (properties['RemotesDir'] as DBusString?)?.value,
-      reportUri: (properties['ReportUri'] as DBusString?)?.value,
-      securityReportUri:
-          (properties['SecurityReportUri'] as DBusString?)?.value,
-      title: (properties['Title'] as DBusString?)?.value,
-      username: (properties['Username'] as DBusString?)?.value,
-    );
   }
 
   Future<DBusMethodSuccessResponse> _callMethod(
