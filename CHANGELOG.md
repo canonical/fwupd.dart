@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.2
+
+* Add missing errors and messages.
+* Bump dbus to 0.7.3, use updated dbus APIs.
+* Implemented FwupdClient.getApprovedFirmware/setApprovedFirmware/getBlockedFirmware/setBlockedFirmware().
+* Implemented FwupdClient.getDetails().
+* Fix typo in FwupdPlugin.toString().
+* Document classes.
+* Split code into smaller modules.
+
 ## 0.2.1
 
 * Only list as supporting Linux.
