@@ -64,38 +64,33 @@ class FwupdClient {
   final _deviceRemovedController = StreamController<FwupdDevice>.broadcast();
 
   /// The version of the fwupd daemon.
-  String get daemonVersion =>
-      (_properties['DaemonVersion'] as DBusString?)?.value ?? '';
+  String get daemonVersion => _properties['DaemonVersion']?.asString() ?? '';
 
   /// The product name for the host.
-  String get hostProduct =>
-      (_properties['HostProduct'] as DBusString?)?.value ?? '';
+  String get hostProduct => _properties['HostProduct']?.asString() ?? '';
 
   /// The machine ID for the host.
-  String get hostMachineId =>
-      (_properties['HostMachineId'] as DBusString?)?.value ?? '';
+  String get hostMachineId => _properties['HostMachineId']?.asString() ?? '';
 
   /// The security ID for the host.
-  String get hostSecurityId =>
-      (_properties['HostSecurityId'] as DBusString?)?.value ?? '';
+  String get hostSecurityId => _properties['HostSecurityId']?.asString() ?? '';
 
   /// True if the daemon has been tainted with a 3rd party plugin.
-  bool get tainted => (_properties['Tainted'] as DBusBoolean?)?.value ?? false;
+  bool get tainted => _properties['Tainted']?.asBoolean() ?? false;
 
   /// True if the daemon is running on an interactive terminal.
-  bool get interactive =>
-      (_properties['Interactive'] as DBusBoolean?)?.value ?? false;
+  bool get interactive => _properties['Interactive']?.asBoolean() ?? false;
 
   /// The status of the fwupd daemon.
   FwupdStatus get status {
-    var value = (_properties['Status'] as DBusUint32?)?.value;
+    var value = _properties['Status']?.asUint32();
     return value != null && value < FwupdStatus.values.length
         ? FwupdStatus.values[value]
         : FwupdStatus.unknown;
   }
 
   /// The percentage of the current job in process.
-  int get percentage => (_properties['Percentage'] as DBusUint32?)?.value ?? 0;
+  int get percentage => _properties['Percentage']?.asUint32() ?? 0;
 
   /// Stream of devices as they are added.
   Stream<FwupdDevice> get deviceAdded => _deviceAddedController.stream;
@@ -134,32 +129,31 @@ class FwupdClient {
 
     var deviceAdded = DBusRemoteObjectSignalStream(
         object: _root, interface: 'org.freedesktop.fwupd', name: 'DeviceAdded');
-    _deviceAddedSubscription = deviceAdded.listen((signal) =>
-        _deviceAdded((signal.values[0] as DBusDict).mapStringVariant()));
+    _deviceAddedSubscription = deviceAdded.listen(
+        (signal) => _deviceAdded(signal.values[0].asStringVariantDict()));
 
     var deviceChanged = DBusRemoteObjectSignalStream(
         object: _root,
         interface: 'org.freedesktop.fwupd',
         name: 'DeviceChanged');
-    _deviceChangedSubscription = deviceChanged.listen((signal) =>
-        _deviceChanged((signal.values[0] as DBusDict).mapStringVariant()));
+    _deviceChangedSubscription = deviceChanged.listen(
+        (signal) => _deviceChanged(signal.values[0].asStringVariantDict()));
 
     var deviceRemoved = DBusRemoteObjectSignalStream(
         object: _root,
         interface: 'org.freedesktop.fwupd',
         name: 'DeviceRemoved');
-    _deviceRemovedSubscription = deviceRemoved.listen((signal) =>
-        _deviceRemoved((signal.values[0] as DBusDict).mapStringVariant()));
+    _deviceRemovedSubscription = deviceRemoved.listen(
+        (signal) => _deviceRemoved(signal.values[0].asStringVariantDict()));
   }
 
   /// Gets the devices being managed by fwupd.
   Future<List<FwupdDevice>> getDevices() async {
     var response = await _callMethod('GetDevices', [],
         replySignature: DBusSignature('aa{sv}'));
-    var devices = (response.returnValues[0] as DBusArray)
-        .children
-        .map((child) => (child as DBusDict).mapStringVariant())
-        .map((properties) => _parseDevice(properties))
+    var devices = response.returnValues[0]
+        .asArray()
+        .map((child) => _parseDevice(child.asStringVariantDict()))
         .toList();
     _devices = {for (var device in devices) device.deviceId: device};
     return _devices.values.toList();
@@ -169,10 +163,9 @@ class FwupdClient {
   Future<List<FwupdPlugin>> getPlugins() async {
     var response = await _callMethod('GetPlugins', [],
         replySignature: DBusSignature('aa{sv}'));
-    return (response.returnValues[0] as DBusArray)
-        .children
-        .map((child) => (child as DBusDict).mapStringVariant())
-        .map((properties) => _parsePlugin(properties))
+    return response.returnValues[0]
+        .asArray()
+        .map((child) => _parsePlugin(child.asStringVariantDict()))
         .toList();
   }
 
@@ -192,10 +185,9 @@ class FwupdClient {
       String method, String deviceId) async {
     var response = await _callMethod(method, [DBusString(deviceId)],
         replySignature: DBusSignature('aa{sv}'));
-    return (response.returnValues[0] as DBusArray)
-        .children
-        .map((child) => (child as DBusDict).mapStringVariant())
-        .map((properties) => _parseRelease(properties))
+    return response.returnValues[0]
+        .asArray()
+        .map((child) => _parseRelease(child.asStringVariantDict()))
         .toList();
   }
 
@@ -204,17 +196,16 @@ class FwupdClient {
       ResourceHandle handle) async {
     var response = await _callMethod('GetDetails', [DBusUnixFd(handle)],
         replySignature: DBusSignature('aa{sv}'));
-    return Map.fromEntries((response.returnValues[0] as DBusArray)
-        .children
-        .map((child) => (child as DBusDict).mapStringVariant())
-        .map((properties) => MapEntry(
-            _parseDevice(properties),
-            (properties['Release'] as DBusArray?)
-                    ?.children
-                    .map((child) => (child as DBusDict).mapStringVariant())
-                    .map((properties) => _parseRelease(properties))
-                    .toList() ??
-                [])));
+    return Map.fromEntries(response.returnValues[0].asArray().map((child) {
+      var properties = child.asStringVariantDict();
+      return MapEntry(
+          _parseDevice(properties),
+          properties['Release']
+                  ?.asArray()
+                  .map((child) => _parseRelease(child.asStringVariantDict()))
+                  .toList() ??
+              []);
+    }));
   }
 
   // FIXME: 'GetHistory'
@@ -274,10 +265,9 @@ class FwupdClient {
   Future<List<FwupdRemote>> getRemotes() async {
     var response = await _callMethod('GetRemotes', [],
         replySignature: DBusSignature('aa{sv}'));
-    return (response.returnValues[0] as DBusArray)
-        .children
-        .map((child) => (child as DBusDict).mapStringVariant())
-        .map((properties) => _parseRemote(properties))
+    return response.returnValues[0]
+        .asArray()
+        .map((child) => _parseRemote(child.asStringVariantDict()))
         .toList();
   }
 
@@ -285,10 +275,7 @@ class FwupdClient {
   Future<List<String>> getApprovedFirmware() async {
     var response = await _callMethod('GetApprovedFirmware', [],
         replySignature: DBusSignature('as'));
-    return (response.returnValues[0] as DBusArray)
-        .children
-        .map((child) => (child as DBusString).value)
-        .toList();
+    return response.returnValues[0].asStringArray().toList();
   }
 
   /// Sets the list of approved firmware checksums
@@ -301,10 +288,7 @@ class FwupdClient {
   Future<List<String>> getBlockedFirmware() async {
     var response = await _callMethod('GetBlockedFirmware', [],
         replySignature: DBusSignature('as'));
-    return (response.returnValues[0] as DBusArray)
-        .children
-        .map((child) => (child as DBusString).value)
-        .toList();
+    return response.returnValues[0].asStringArray().toList();
   }
 
   /// Sets the list of blocked firmware checksums
@@ -382,48 +366,45 @@ class FwupdClient {
   }
 
   FwupdDevice _parseDevice(Map<String, DBusValue> properties) {
-    var flagsValue = (properties['Flags'] as DBusUint64?)?.value ?? 0;
+    var flagsValue = properties['Flags']?.asUint64() ?? 0;
     var flags = <FwupdDeviceFlag>{};
     for (var i = 0; i < FwupdDeviceFlag.values.length; i++) {
       if (flagsValue & (1 << i) != 0) {
         flags.add(FwupdDeviceFlag.values[i]);
       }
     }
-    var updateStateValue =
-        (properties['UpdateState'] as DBusUint32?)?.value ?? 0;
+    var updateStateValue = properties['UpdateState']?.asUint32() ?? 0;
     var updateState = updateStateValue < FwupdUpdateState.values.length
         ? FwupdUpdateState.values[updateStateValue]
         : FwupdUpdateState.unknown;
-    var versionFormatValue =
-        (properties['VersionFormat'] as DBusUint32?)?.value ?? 0;
+    var versionFormatValue = properties['VersionFormat']?.asUint32() ?? 0;
     var versionFormat = versionFormatValue < FwupdVersionFormat.values.length
         ? FwupdVersionFormat.values[versionFormatValue]
         : FwupdVersionFormat.unknown;
     return FwupdDevice(
-        checksum: (properties['Checksum'] as DBusString?)?.value,
+        checksum: properties['Checksum']?.asString(),
         created: _parseDateTime(properties['Created']),
-        deviceId: (properties['DeviceId'] as DBusString?)?.value ?? '',
-        name: (properties['Name'] as DBusString?)?.value ?? '',
+        deviceId: properties['DeviceId']?.asString() ?? '',
+        name: properties['Name']?.asString() ?? '',
         flags: flags,
-        guid: (properties['Guid'] as DBusArray?)?.mapString().toList() ?? [],
-        icon: (properties['Icon'] as DBusArray?)?.mapString().toList() ?? [],
+        guid: properties['Guid']?.asStringArray().toList() ?? [],
+        icon: properties['Icon']?.asStringArray().toList() ?? [],
         modified: _parseDateTime(properties['Modified']),
-        parentDeviceId: (properties['ParentDeviceId'] as DBusString?)?.value,
-        plugin: (properties['Plugin'] as DBusString?)?.value ?? '',
-        protocol: (properties['Protocol'] as DBusString?)?.value,
-        summary: (properties['Summary'] as DBusString?)?.value,
+        parentDeviceId: properties['ParentDeviceId']?.asString(),
+        plugin: properties['Plugin']?.asString() ?? '',
+        protocol: properties['Protocol']?.asString(),
+        summary: properties['Summary']?.asString(),
         updateState: updateState,
-        vendor: (properties['Vendor'] as DBusString?)?.value,
-        vendorId: (properties['VendorId'] as DBusString?)?.value,
-        version: (properties['Version'] as DBusString?)?.value,
-        versionBootloader:
-            (properties['VersionBootloader'] as DBusString?)?.value,
+        vendor: properties['Vendor']?.asString(),
+        vendorId: properties['VendorId']?.asString(),
+        version: properties['Version']?.asString(),
+        versionBootloader: properties['VersionBootloader']?.asString(),
         versionFormat: versionFormat,
-        versionLowest: (properties['VersionLowest'] as DBusString?)?.value);
+        versionLowest: properties['VersionLowest']?.asString());
   }
 
   DateTime? _parseDateTime(DBusValue? value) {
-    var secs = (value as DBusUint64?)?.value ?? 0;
+    var secs = value?.asUint64() ?? 0;
     if (secs <= 0) {
       return null;
     }
@@ -431,82 +412,76 @@ class FwupdClient {
   }
 
   FwupdPlugin _parsePlugin(Map<String, DBusValue> properties) {
-    return FwupdPlugin(name: (properties['Name'] as DBusString?)?.value ?? '');
+    return FwupdPlugin(name: properties['Name']?.asString() ?? '');
   }
 
   FwupdRelease _parseRelease(Map<String, DBusValue> properties) {
-    var flagsValue = (properties['TrustFlags'] as DBusUint64?)?.value ?? 0;
+    var flagsValue = properties['TrustFlags']?.asUint64() ?? 0;
     var flags = <FwupdReleaseFlag>{};
     for (var i = 0; i < FwupdReleaseFlag.values.length; i++) {
       if (flagsValue & (1 << i) != 0) {
         flags.add(FwupdReleaseFlag.values[i]);
       }
     }
-    var urgencyValue = (properties['Urgency'] as DBusUint32?)?.value ?? 0;
+    var urgencyValue = properties['Urgency']?.asUint32() ?? 0;
     var urgency = urgencyValue < FwupdReleaseUrgency.values.length
         ? FwupdReleaseUrgency.values[urgencyValue]
         : FwupdReleaseUrgency.unknown;
     return FwupdRelease(
-        appstreamId: (properties['AppstreamId'] as DBusString?)?.value,
-        checksum: (properties['Checksum'] as DBusString?)?.value,
+        appstreamId: properties['AppstreamId']?.asString(),
+        checksum: properties['Checksum']?.asString(),
         created: _parseDateTime(properties['Created']),
-        description: (properties['Description'] as DBusString?)?.value ?? '',
-        filename: (properties['Filename'] as DBusString?)?.value,
-        homepage: (properties['Homepage'] as DBusString?)?.value ?? '',
-        installDuration:
-            (properties['InstallDuration'] as DBusUint32?)?.value ?? 0,
-        license: (properties['License'] as DBusString?)?.value ?? '',
-        locations:
-            (properties['Locations'] as DBusArray?)?.mapString().toList() ?? [],
-        name: (properties['Name'] as DBusString?)?.value ?? '',
-        protocol: (properties['Protocol'] as DBusString?)?.value,
-        remoteId: (properties['RemoteId'] as DBusString?)?.value,
-        size: (properties['Size'] as DBusUint64?)?.value ?? 0,
-        summary: (properties['Summary'] as DBusString?)?.value ?? '',
+        description: properties['Description']?.asString() ?? '',
+        filename: properties['Filename']?.asString(),
+        homepage: properties['Homepage']?.asString() ?? '',
+        installDuration: properties['InstallDuration']?.asUint32() ?? 0,
+        license: properties['License']?.asString() ?? '',
+        locations: properties['Locations']?.asStringArray().toList() ?? [],
+        name: properties['Name']?.asString() ?? '',
+        protocol: properties['Protocol']?.asString(),
+        remoteId: properties['RemoteId']?.asString(),
+        size: properties['Size']?.asUint64() ?? 0,
+        summary: properties['Summary']?.asString() ?? '',
         flags: flags,
         urgency: urgency,
-        uri: (properties['Uri'] as DBusString?)?.value,
-        vendor: (properties['Vendor'] as DBusString?)?.value ?? '',
-        version: (properties['Version'] as DBusString?)?.value ?? '');
+        uri: properties['Uri']?.asString(),
+        vendor: properties['Vendor']?.asString() ?? '',
+        version: properties['Version']?.asString() ?? '');
   }
 
   FwupdRemote _parseRemote(Map<String, DBusValue> properties) {
-    var kindValue = (properties['Type'] as DBusUint32?)?.value ?? 0;
+    var kindValue = properties['Type']?.asUint32() ?? 0;
     var kind = kindValue < FwupdRemoteKind.values.length
         ? FwupdRemoteKind.values[kindValue]
         : FwupdRemoteKind.unknown;
-    var keyringValue = (properties['Keyring'] as DBusUint32?)?.value ?? 0;
+    var keyringValue = properties['Keyring']?.asUint32() ?? 0;
     var keyring = keyringValue < FwupdKeyringKind.values.length
         ? FwupdKeyringKind.values[keyringValue]
         : FwupdKeyringKind.jcat;
     return FwupdRemote(
       age: _parseDateTime(properties['ModificationTime']),
-      agreement: (properties['Agreement'] as DBusString?)?.value,
-      approvalRequired:
-          (properties['ApprovalRequired'] as DBusBoolean?)?.value ?? false,
-      automaticReports:
-          (properties['AutomaticReports'] as DBusBoolean?)?.value ?? false,
+      agreement: properties['Agreement']?.asString(),
+      approvalRequired: properties['ApprovalRequired']?.asBoolean() ?? false,
+      automaticReports: properties['AutomaticReports']?.asBoolean() ?? false,
       automaticSecurityReports:
-          (properties['AutomaticSecurityReports'] as DBusBoolean?)?.value ??
-              false,
-      checksum: (properties['Checksum'] as DBusString?)?.value,
-      enabled: (properties['Enabled'] as DBusBoolean?)?.value ?? false,
-      filenameCache: (properties['FilenameCache'] as DBusString?)?.value,
-      filenameCacheSig: (properties['FilenameCacheSig'] as DBusString?)?.value,
-      filenameSource: (properties['FilenameSource'] as DBusString?)?.value,
-      firmwareBaseUri: (properties['FirmwareBaseUri'] as DBusString?)?.value,
-      id: (properties['RemoteId'] as DBusString?)?.value ?? '',
+          properties['AutomaticSecurityReports']?.asBoolean() ?? false,
+      checksum: properties['Checksum']?.asString(),
+      enabled: properties['Enabled']?.asBoolean() ?? false,
+      filenameCache: properties['FilenameCache']?.asString(),
+      filenameCacheSig: properties['FilenameCacheSig']?.asString(),
+      filenameSource: properties['FilenameSource']?.asString(),
+      firmwareBaseUri: properties['FirmwareBaseUri']?.asString(),
+      id: properties['RemoteId']?.asString() ?? '',
       keyringKind: keyring,
       kind: kind,
-      metadataUri: (properties['Uri'] as DBusString?)?.value,
-      password: (properties['Password'] as DBusString?)?.value,
-      priority: (properties['Priority'] as DBusInt32?)?.value ?? 0,
-      remotesDir: (properties['RemotesDir'] as DBusString?)?.value,
-      reportUri: (properties['ReportUri'] as DBusString?)?.value,
-      securityReportUri:
-          (properties['SecurityReportUri'] as DBusString?)?.value,
-      title: (properties['Title'] as DBusString?)?.value,
-      username: (properties['Username'] as DBusString?)?.value,
+      metadataUri: properties['Uri']?.asString(),
+      password: properties['Password']?.asString(),
+      priority: properties['Priority']?.asInt32() ?? 0,
+      remotesDir: properties['RemotesDir']?.asString(),
+      reportUri: properties['ReportUri']?.asString(),
+      securityReportUri: properties['SecurityReportUri']?.asString(),
+      title: properties['Title']?.asString(),
+      username: properties['Username']?.asString(),
     );
   }
 
