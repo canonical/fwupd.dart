@@ -91,34 +91,34 @@ class MockFwupdObject extends DBusObject {
 
     switch (methodCall.name) {
       case 'Activate':
-        var id = (methodCall.values[0] as DBusString).value;
+        var id = methodCall.values[0].asString();
         server._findDeviceById(id)!.activated = true;
         return DBusMethodSuccessResponse();
 
       case 'ClearResults':
-        var id = (methodCall.values[0] as DBusString).value;
+        var id = methodCall.values[0].asString();
         server._findDeviceById(id)!.resultsCleared = true;
         return DBusMethodSuccessResponse();
 
       case 'Install':
-        var id = (methodCall.values[0] as DBusString).value;
+        var id = methodCall.values[0].asString();
         var device = server._findDeviceById(id)!;
-        device.installed = (methodCall.values[1] as DBusUnixFd).handle;
-        device.options = (methodCall.values[2] as DBusDict).toNative();
+        device.installed = methodCall.values[1].asUnixFd();
+        device.options = methodCall.values[2].toNative();
         return DBusMethodSuccessResponse();
 
       case 'Unlock':
-        var id = (methodCall.values[0] as DBusString).value;
+        var id = methodCall.values[0].asString();
         server._findDeviceById(id)!.unlocked = true;
         return DBusMethodSuccessResponse();
 
       case 'Verify':
-        var id = (methodCall.values[0] as DBusString).value;
+        var id = methodCall.values[0].asString();
         server._findDeviceById(id)!.verified = true;
         return DBusMethodSuccessResponse();
 
       case 'VerifyUpdate':
-        var id = (methodCall.values[0] as DBusString).value;
+        var id = methodCall.values[0].asString();
         server._findDeviceById(id)!.updateVerified = true;
         return DBusMethodSuccessResponse();
 
@@ -127,9 +127,9 @@ class MockFwupdObject extends DBusObject {
             [DBusArray.string(server.approvedFirmware)]);
 
       case 'SetApprovedFirmware':
-        var checksums = (methodCall.values[0] as DBusArray).children;
-        server.approvedFirmware.replaceRange(0, server.approvedFirmware.length,
-            checksums.map((c) => (c as DBusString).value));
+        var checksums = methodCall.values[0].asStringArray();
+        server.approvedFirmware
+            .replaceRange(0, server.approvedFirmware.length, checksums);
         return DBusMethodSuccessResponse();
 
       case 'GetBlockedFirmware':
@@ -137,9 +137,9 @@ class MockFwupdObject extends DBusObject {
             [DBusArray.string(server.blockedFirmware)]);
 
       case 'SetBlockedFirmware':
-        var checksums = (methodCall.values[0] as DBusArray).children;
-        server.blockedFirmware.replaceRange(0, server.blockedFirmware.length,
-            checksums.map((c) => (c as DBusString).value));
+        var checksums = methodCall.values[0].asStringArray();
+        server.blockedFirmware
+            .replaceRange(0, server.blockedFirmware.length, checksums);
         return DBusMethodSuccessResponse();
 
       case 'GetDevices':
@@ -218,7 +218,7 @@ class MockFwupdObject extends DBusObject {
         ]);
 
       case 'GetReleases':
-        var deviceId = (methodCall.values[0] as DBusString).value;
+        var deviceId = methodCall.values[0].asString();
         var releases = server.releases[deviceId];
         if (releases == null) {
           return DBusMethodErrorResponse('org.freedesktop.fwupd.Internal',
@@ -236,7 +236,7 @@ class MockFwupdObject extends DBusObject {
         ]);
 
       case 'GetUpgrades':
-        var deviceId = (methodCall.values[0] as DBusString).value;
+        var deviceId = methodCall.values[0].asString();
         var upgrades = server.upgrades[deviceId];
         if (upgrades == null) {
           return DBusMethodErrorResponse('org.freedesktop.fwupd.Internal',
@@ -248,7 +248,7 @@ class MockFwupdObject extends DBusObject {
         ]);
 
       case 'GetDowngrades':
-        var deviceId = (methodCall.values[0] as DBusString).value;
+        var deviceId = methodCall.values[0].asString();
         var downgrades = server.downgrades[deviceId];
         if (downgrades == null) {
           return DBusMethodErrorResponse('org.freedesktop.fwupd.Internal',
