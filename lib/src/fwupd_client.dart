@@ -62,6 +62,8 @@ class FwupdClient {
   final _deviceChangedController = StreamController<FwupdDevice>.broadcast();
   StreamSubscription? _deviceRemovedSubscription;
   final _deviceRemovedController = StreamController<FwupdDevice>.broadcast();
+  StreamSubscription? _deviceRequestSubscription;
+  final _deviceRequestController = StreamController<FwupdDevice>.broadcast();
 
   /// The version of the fwupd daemon.
   String get daemonVersion => _properties['DaemonVersion']?.asString() ?? '';
@@ -100,6 +102,9 @@ class FwupdClient {
 
   /// Stream of devices as they are removed.
   Stream<FwupdDevice> get deviceRemoved => _deviceRemovedController.stream;
+
+  /// Stream of devices as they are removed.
+  Stream<FwupdDevice> get deviceRequest => _deviceRequestController.stream;
 
   /// Stream of property names as they change.
   Stream<List<String>> get propertiesChanged =>
@@ -145,6 +150,13 @@ class FwupdClient {
         name: 'DeviceRemoved');
     _deviceRemovedSubscription = deviceRemoved.listen(
         (signal) => _deviceRemoved(signal.values[0].asStringVariantDict()));
+
+    var deviceRequest = DBusRemoteObjectSignalStream(
+        object: _root,
+        interface: 'org.freedesktop.fwupd',
+        name: 'DeviceRequest');
+    _deviceRequestSubscription = deviceRequest.listen(
+        (signal) => _deviceRequest(signal.values[0].asStringVariantDict()));
   }
 
   /// Gets the devices being managed by fwupd.
@@ -333,6 +345,10 @@ class FwupdClient {
       await _deviceRemovedSubscription!.cancel();
       _deviceRemovedSubscription = null;
     }
+    if (_deviceRequestSubscription != null) {
+      await _deviceRequestSubscription!.cancel();
+      _deviceRequestSubscription = null;
+    }
     _devices.clear();
     if (_closeBus) {
       await _bus.close();
@@ -363,6 +379,11 @@ class FwupdClient {
     var device = _parseDevice(properties);
     _devices.remove(device.deviceId);
     _deviceRemovedController.add(device);
+  }
+
+  Future<void> _deviceRequest(Map<String, DBusValue> properties) async {
+    var device = _parseDevice(properties);
+    _deviceRequestController.add(device);
   }
 
   FwupdDevice _parseDevice(Map<String, DBusValue> properties) {
