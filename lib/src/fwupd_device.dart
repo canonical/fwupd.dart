@@ -117,6 +117,15 @@ class FwupdDevice {
   /// One line device summary.
   final String? summary;
 
+  /// Update error.
+  final String? updateError;
+
+  /// Update image URL.
+  final String? updateImage;
+
+  /// Update message.
+  final String? updateMessage;
+
   /// Update state.
   final FwupdUpdateState updateState;
 
@@ -151,6 +160,9 @@ class FwupdDevice {
       required this.plugin,
       this.protocol,
       this.summary,
+      this.updateError,
+      this.updateImage,
+      this.updateMessage,
       this.updateState = FwupdUpdateState.unknown,
       this.vendor,
       this.vendorId,
