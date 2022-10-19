@@ -349,6 +349,11 @@ class MockFwupdServer extends DBusClient {
     return _root.emitSignal('org.freedesktop.fwupd', 'DeviceRemoved',
         [DBusDict.stringVariant(device)]);
   }
+
+  Future<void> sendDeviceRequest(Map<String, DBusValue> device) {
+    return _root.emitSignal('org.freedesktop.fwupd', 'DeviceRequest',
+        [DBusDict.stringVariant(device)]);
+  }
 }
 
 void main() {
@@ -469,6 +474,11 @@ void main() {
       expect(device.deviceId, equals('ID'));
       expect(device.version, equals('1.1'));
     }));
+    client.deviceRequest.listen(expectAsync1((device) {
+      expect(device.deviceId, equals('ID'));
+      expect(device.version, equals('1.1'));
+      expect(device.updateMessage, equals('Do some things with the device!'));
+    }));
 
     await fwupd.addDevice(
         {'DeviceId': DBusString('ID'), 'Version': DBusString('1.0')});
@@ -476,6 +486,11 @@ void main() {
         {'DeviceId': DBusString('ID'), 'Version': DBusString('1.0')}); // ignore
     await fwupd.changeDevice(
         {'DeviceId': DBusString('ID'), 'Version': DBusString('1.1')});
+    await fwupd.sendDeviceRequest({
+      'DeviceId': DBusString('ID'),
+      'Version': DBusString('1.1'),
+      'UpdateMessage': DBusString('Do some things with the device!')
+    });
     await fwupd.removeDevice(
         {'DeviceId': DBusString('ID'), 'Version': DBusString('1.1')});
   });
