@@ -477,6 +477,9 @@ void main() {
     client.deviceRequest.listen(expectAsync1((device) {
       expect(device.deviceId, equals('ID'));
       expect(device.version, equals('1.1'));
+      expect(device.updateError, equals('An error occured'));
+      expect(
+          device.updateImage, equals('https://example.com/update_image.jpg'));
       expect(device.updateMessage, equals('Do some things with the device!'));
     }));
 
@@ -489,7 +492,9 @@ void main() {
     await fwupd.sendDeviceRequest({
       'DeviceId': DBusString('ID'),
       'Version': DBusString('1.1'),
-      'UpdateMessage': DBusString('Do some things with the device!')
+      'UpdateError': DBusString('An error occured'),
+      'UpdateImage': DBusString('https://example.com/update_image.jpg'),
+      'UpdateMessage': DBusString('Do some things with the device!'),
     });
     await fwupd.removeDevice(
         {'DeviceId': DBusString('ID'), 'Version': DBusString('1.1')});
