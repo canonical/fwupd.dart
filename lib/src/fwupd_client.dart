@@ -103,7 +103,7 @@ class FwupdClient {
   /// Stream of devices as they are removed.
   Stream<FwupdDevice> get deviceRemoved => _deviceRemovedController.stream;
 
-  /// Stream of devices as they are removed.
+  /// Stream of device requests.
   Stream<FwupdDevice> get deviceRequest => _deviceRequestController.stream;
 
   /// Stream of property names as they change.
